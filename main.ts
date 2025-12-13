@@ -999,12 +999,14 @@ class CalendarView extends ItemView {
 			// Date and time indicator (left side)
 			const dateTimeIndicator = timelineItem.createDiv("timeline-datetime");
 
+			// Localize weekday names
+			const weekdayNames = getWeekdayNames(this.plugin.settings.language);
+			const localeString = this.plugin.settings.language === 'en' ? 'en-US' : 'zh-CN';
+
 			dateTimeIndicator.innerHTML = `
 				<div class="timeline-date">${String(originalModTime.getDate()).padStart(2, '0')}</div>
-				<div class="timeline-weekday">${originalModTime.toLocaleDateString('zh-CN', {
-					weekday: 'long'
-				})}</div>
-				<div class="timeline-time">${originalModTime.toLocaleTimeString('zh-CN', {
+				<div class="timeline-weekday">${weekdayNames[originalModTime.getDay()]}</div>
+				<div class="timeline-time">${originalModTime.toLocaleTimeString(localeString, {
 					hour: '2-digit',
 					minute: '2-digit',
 					second: '2-digit',
@@ -1426,15 +1428,15 @@ class DateNotesModal extends Modal {
 
 	async onOpen() {
 		const { contentEl } = this;
-		const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-			'July', 'August', 'September', 'October', 'November', 'December'];
 
 		// Create header container
 		const headerContainer = contentEl.createDiv("modal-header-container");
 
-		// Title
+		// Title with localization
+		const monthNames = getMonthNames(this.plugin.settings.language);
+		const titleSuffix = this.plugin.settings.language === 'en' ? 'notes' : '的笔记';
 		headerContainer.createEl("h2", {
-			text: `${monthNames[this.month]} ${this.day}, ${this.year} 的笔记`
+			text: `${monthNames[this.month]} ${this.day}, ${this.year} ${titleSuffix}`
 		});
 
 		// Sort controls
@@ -1442,7 +1444,9 @@ class DateNotesModal extends Modal {
 		sortControls.style.marginTop = '1rem';
 
 		const sortBtn = sortControls.createEl("button", {
-			text: this.plugin.settings.sortOrder === 'desc' ? '↓ 时间降序' : '↑ 时间升序',
+			text: this.plugin.settings.sortOrder === 'desc' ?
+				(this.plugin.settings.language === 'en' ? '↓ Time Desc' : '↓ 时间降序') :
+				(this.plugin.settings.language === 'en' ? '↑ Time Asc' : '↑ 时间升序'),
 			cls: "sort-button"
 		});
 		sortBtn.style.marginRight = '0.5rem';
@@ -1453,8 +1457,15 @@ class DateNotesModal extends Modal {
 			this.plugin.settings.sortOrder = newSortOrder;
 			this.plugin.saveSettings();
 
-			// Update button text
-			sortBtn.textContent = newSortOrder === 'desc' ? '↓ 时间降序' : '↑ 时间升序';
+			// Update button text with localization
+			sortBtn.textContent = newSortOrder === 'desc' ?
+				(this.plugin.settings.language === 'en' ? '↓ Time Desc' : '↓ 时间降序') :
+				(this.plugin.settings.language === 'en' ? '↑ Time Asc' : '↑ 时间升序');
+
+			// Update button title with localization
+			sortBtn.title = newSortOrder === 'desc' ?
+				(this.plugin.settings.language === 'en' ? 'Time Desc (Newest first)' : '时间降序 (最新在前)') :
+				(this.plugin.settings.language === 'en' ? 'Time Asc (Oldest first)' : '时间升序 (最旧在前)');
 
 			// Re-render the timeline
 			this.renderTimeline();
@@ -1492,12 +1503,15 @@ class DateNotesModal extends Modal {
 
 			// Date and time indicator (left side)
 			const dateTimeIndicator = timelineItem.createDiv("timeline-datetime");
+
+			// Localize weekday names
+			const weekdayNames = getWeekdayNames(this.plugin.settings.language);
+			const localeString = this.plugin.settings.language === 'en' ? 'en-US' : 'zh-CN';
+
 			dateTimeIndicator.innerHTML = `
-				<div class="timeline-date">${String(noteDate.getDate()).padStart(2, '0')}</div>
-				<div class="timeline-weekday">${noteDate.toLocaleDateString('zh-CN', {
-					weekday: 'long'
-				})}</div>
-				<div class="timeline-time">${noteDate.toLocaleTimeString('zh-CN', {
+				<div class="timeline-date">${String(noteDate.getMonth() + 1).padStart(2, '0')}-${String(noteDate.getDate()).padStart(2, '0')}</div>
+				<div class="timeline-weekday">${weekdayNames[noteDate.getDay()]}</div>
+				<div class="timeline-time">${noteDate.toLocaleTimeString(localeString, {
 					hour: '2-digit',
 					minute: '2-digit',
 					second: '2-digit'

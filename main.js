@@ -714,12 +714,12 @@ var CalendarView = class extends import_obsidian.ItemView {
       const timelineItem = timeline.createDiv("timeline-item");
       const timelineDot = timelineItem.createDiv("timeline-dot week-timeline-dot");
       const dateTimeIndicator = timelineItem.createDiv("timeline-datetime");
+      const weekdayNames = getWeekdayNames(this.plugin.settings.language);
+      const localeString = this.plugin.settings.language === "en" ? "en-US" : "zh-CN";
       dateTimeIndicator.innerHTML = `
 				<div class="timeline-date">${String(originalModTime.getDate()).padStart(2, "0")}</div>
-				<div class="timeline-weekday">${originalModTime.toLocaleDateString("zh-CN", {
-        weekday: "long"
-      })}</div>
-				<div class="timeline-time">${originalModTime.toLocaleTimeString("zh-CN", {
+				<div class="timeline-weekday">${weekdayNames[originalModTime.getDay()]}</div>
+				<div class="timeline-time">${originalModTime.toLocaleTimeString(localeString, {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
@@ -995,28 +995,16 @@ var DateNotesModal = class extends import_obsidian.Modal {
   }
   async onOpen() {
     const { contentEl } = this;
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December"
-    ];
     const headerContainer = contentEl.createDiv("modal-header-container");
+    const monthNames = getMonthNames(this.plugin.settings.language);
+    const titleSuffix = this.plugin.settings.language === "en" ? "notes" : "\u7684\u7B14\u8BB0";
     headerContainer.createEl("h2", {
-      text: `${monthNames[this.month]} ${this.day}, ${this.year} \u7684\u7B14\u8BB0`
+      text: `${monthNames[this.month]} ${this.day}, ${this.year} ${titleSuffix}`
     });
     const sortControls = headerContainer.createDiv("modal-sort-controls");
     sortControls.style.marginTop = "1rem";
     const sortBtn = sortControls.createEl("button", {
-      text: this.plugin.settings.sortOrder === "desc" ? "\u2193 \u65F6\u95F4\u964D\u5E8F" : "\u2191 \u65F6\u95F4\u5347\u5E8F",
+      text: this.plugin.settings.sortOrder === "desc" ? this.plugin.settings.language === "en" ? "\u2193 Time Desc" : "\u2193 \u65F6\u95F4\u964D\u5E8F" : this.plugin.settings.language === "en" ? "\u2191 Time Asc" : "\u2191 \u65F6\u95F4\u5347\u5E8F",
       cls: "sort-button"
     });
     sortBtn.style.marginRight = "0.5rem";
@@ -1024,7 +1012,8 @@ var DateNotesModal = class extends import_obsidian.Modal {
       const newSortOrder = this.plugin.settings.sortOrder === "desc" ? "asc" : "desc";
       this.plugin.settings.sortOrder = newSortOrder;
       this.plugin.saveSettings();
-      sortBtn.textContent = newSortOrder === "desc" ? "\u2193 \u65F6\u95F4\u964D\u5E8F" : "\u2191 \u65F6\u95F4\u5347\u5E8F";
+      sortBtn.textContent = newSortOrder === "desc" ? this.plugin.settings.language === "en" ? "\u2193 Time Desc" : "\u2193 \u65F6\u95F4\u964D\u5E8F" : this.plugin.settings.language === "en" ? "\u2191 Time Asc" : "\u2191 \u65F6\u95F4\u5347\u5E8F";
+      sortBtn.title = newSortOrder === "desc" ? this.plugin.settings.language === "en" ? "Time Desc (Newest first)" : "\u65F6\u95F4\u964D\u5E8F (\u6700\u65B0\u5728\u524D)" : this.plugin.settings.language === "en" ? "Time Asc (Oldest first)" : "\u65F6\u95F4\u5347\u5E8F (\u6700\u65E7\u5728\u524D)";
       this.renderTimeline();
     };
     const timelineContainer = contentEl.createDiv("modal-timeline-container");
@@ -1045,12 +1034,12 @@ var DateNotesModal = class extends import_obsidian.Modal {
       const timelineItem = timeline.createDiv("timeline-item");
       const timelineDot = timelineItem.createDiv("timeline-dot modal-timeline-dot");
       const dateTimeIndicator = timelineItem.createDiv("timeline-datetime");
+      const weekdayNames = getWeekdayNames(this.plugin.settings.language);
+      const localeString = this.plugin.settings.language === "en" ? "en-US" : "zh-CN";
       dateTimeIndicator.innerHTML = `
-				<div class="timeline-date">${String(noteDate.getDate()).padStart(2, "0")}</div>
-				<div class="timeline-weekday">${noteDate.toLocaleDateString("zh-CN", {
-        weekday: "long"
-      })}</div>
-				<div class="timeline-time">${noteDate.toLocaleTimeString("zh-CN", {
+				<div class="timeline-date">${String(noteDate.getMonth() + 1).padStart(2, "0")}-${String(noteDate.getDate()).padStart(2, "0")}</div>
+				<div class="timeline-weekday">${weekdayNames[noteDate.getDay()]}</div>
+				<div class="timeline-time">${noteDate.toLocaleTimeString(localeString, {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit"
