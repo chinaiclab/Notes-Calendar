@@ -413,6 +413,7 @@ class NotesDatesPlugin extends Plugin {
 				flex-direction: column;
 			}
 
+			/* Ensure month headers are positioned correctly */
 			.year-month-header {
 				margin-top: 20px;
 				margin-bottom: 12px;
@@ -421,6 +422,55 @@ class NotesDatesPlugin extends Plugin {
 				padding-left: 12px;
 				background-color: var(--background-secondary);
 				border-radius: 0 4px 4px 0;
+				cursor: pointer;
+				transition: all 0.3s ease;
+			}
+
+			.year-month-header:hover {
+				background-color: var(--background-modifier-hover);
+			}
+
+			/* Month expansion/collapse styles */
+			.year-month-container .year-month-content {
+				max-height: 2000px;
+				overflow: hidden;
+				transition: max-height 0.3s ease-out;
+			}
+
+			.year-month-container.collapsed .year-month-content {
+				max-height: 0;
+				opacity: 0;
+				transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+			}
+
+			/* Expanded state indicator */
+			.year-month-header::before {
+				content: "▼";
+				margin-right: 8px;
+				font-size: 12px;
+				color: var(--interactive-accent);
+				transition: transform 0.2s ease;
+			}
+
+			.year-month-container.collapsed .year-month-header::before {
+				transform: rotate(-90deg);
+			}
+
+			/* Month items expanded state */
+			.year-month-timeline-item.expanded {
+				border-color: var(--interactive-accent);
+				background-color: var(--interactive-accent);
+				color: var(--text-on-accent);
+				transform: scale(1.05);
+			}
+
+			/* Month container styles */
+			.year-month-container {
+				margin-bottom: 16px;
+			}
+
+			.year-month-content {
+				padding-left: 24px;
 			}
 
 			.year-month-header h3 {
@@ -968,6 +1018,13 @@ class NotesDatesPlugin extends Plugin {
 	}
 
 	scrollToFileInYearView(file: TFile) {
+		// Get file's modification month
+		const fileDate = new Date(file.stat.mtime);
+		const fileMonth = fileDate.getMonth();
+
+		// First, scroll the month timeline to the target month
+		this.scrollToMonthInTimeline(fileMonth);
+
 		// Find all file elements in the year view's month timelines
 		const fileElements = document.querySelectorAll('.timeline-note-content');
 		let targetElement: Element | null = null;
@@ -984,29 +1041,82 @@ class NotesDatesPlugin extends Plugin {
 			}
 		});
 
-		if (targetElement) {
-			const targetEl = targetElement as HTMLElement;
+		// Expand the month section if it's collapsed
+		this.expandMonthSection(fileMonth);
 
-			// Clear any existing highlights
-			this.clearYearViewHighlights();
+		setTimeout(() => {
+			if (targetElement) {
+				const targetEl = targetElement as HTMLElement;
 
-			// Scroll the element into view within the year view
-			targetEl.scrollIntoView({
+				// Clear any existing highlights
+				this.clearYearViewHighlights();
+
+				// Scroll the element into view within the year view
+				targetEl.scrollIntoView({
+					behavior: 'smooth',
+					block: 'center'
+				});
+
+				// Add highlight class
+				targetEl.classList.add('year-view-file-highlight');
+
+				console.log('Scrolled to and highlighted file in year view:', file.path);
+
+				// Remove highlight after 3 seconds
+				setTimeout(() => {
+					targetEl.classList.remove('year-view-file-highlight');
+				}, 3000);
+			} else {
+				console.log('File element not found in year view timeline:', file.path);
+			}
+		}, 300); // Wait for month expansion animation
+	}
+
+	scrollToMonthInTimeline(monthIndex: number) {
+		// Remove active class from all months
+		document.querySelectorAll('.year-month-timeline-item').forEach(item => {
+			item.removeClass('active');
+		});
+
+		// Find and activate the target month
+		const targetMonthItem = document.querySelectorAll('.year-month-timeline-item')[monthIndex];
+		if (targetMonthItem) {
+			targetMonthItem.addClass('active');
+
+			// Scroll the month timeline horizontally to center the target month
+			targetMonthItem.scrollIntoView({
 				behavior: 'smooth',
-				block: 'center'
+				block: 'nearest',
+				inline: 'center'
 			});
+		}
+	}
 
-			// Add highlight class
-			targetEl.classList.add('year-view-file-highlight');
+	expandMonthSection(monthIndex: number) {
+		const monthSection = document.getElementById(`month-${monthIndex}`);
+		if (monthSection) {
+			// Remove collapsed class if it exists
+			monthSection.removeClass('collapsed');
+			monthSection.addClass('expanded');
+		}
+	}
 
-			console.log('Scrolled to and highlighted file in year view:', file.path);
+	toggleMonthSection(monthIndex: number) {
+		const monthSection = document.getElementById(`month-${monthIndex}`);
+		const monthItem = document.querySelectorAll('.year-month-timeline-item')[monthIndex];
 
-			// Remove highlight after 3 seconds
-			setTimeout(() => {
-				targetEl.classList.remove('year-view-file-highlight');
-			}, 3000);
-		} else {
-			console.log('File element not found in year view timeline:', file.path);
+		if (monthSection && monthItem) {
+			if (monthSection.hasClass('expanded')) {
+				// Collapse the month
+				monthSection.removeClass('expanded');
+				monthSection.addClass('collapsed');
+				monthItem.removeClass('expanded');
+			} else {
+				// Expand the month
+				monthSection.removeClass('collapsed');
+				monthSection.addClass('expanded');
+				monthItem.addClass('expanded');
+			}
 		}
 	}
 
@@ -1502,7 +1612,7 @@ class CalendarView extends ItemView {
 				cls: "year-month-timeline-count"
 			});
 
-			// Add click handler to jump to month
+			// Add click handler to toggle month expansion and scroll to month
 			monthItem.onclick = () => {
 				// Remove active class from all months
 				monthTimelineContainer.querySelectorAll(".year-month-timeline-item").forEach(item => {
@@ -1514,8 +1624,23 @@ class CalendarView extends ItemView {
 				// Update selected month
 				selectedMonth = monthIndex;
 
-				// Scroll to the month section
+				// Toggle month expansion
 				const monthSection = document.getElementById(`month-${monthIndex}`);
+				if (monthSection) {
+					if (monthSection.hasClass('expanded')) {
+						// Collapse the month
+						monthSection.removeClass('expanded');
+						monthSection.addClass('collapsed');
+						monthItem.removeClass('expanded');
+					} else {
+						// Expand the month
+						monthSection.removeClass('collapsed');
+						monthSection.addClass('expanded');
+						monthItem.addClass('expanded');
+					}
+				}
+
+				// Scroll to the month section
 				if (monthSection) {
 					monthSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 				}
@@ -1531,9 +1656,13 @@ class CalendarView extends ItemView {
 			const monthNotes = notesByMonth[monthIndex];
 			totalNotes += monthNotes.length;
 
-			// Create month section for all months (including empty ones)
-			const monthSection = timeline.createDiv("year-month-header");
-			monthSection.id = `month-${monthIndex}`;
+			// Create month section container
+			const monthContainer = timeline.createDiv("year-month-container");
+			monthContainer.id = `month-${monthIndex}`;
+			monthContainer.addClass('expanded'); // Start expanded
+
+			// Create month header
+			const monthSection = monthContainer.createDiv("year-month-header");
 
 			// Create localized month title
 			let monthTitleText: string;
@@ -1551,9 +1680,12 @@ class CalendarView extends ItemView {
 				text: monthTitleText
 			});
 
+			// Create content container for notes
+			const monthContent = monthContainer.createDiv("year-month-content");
+
 			// Add notes for this month
 			monthNotes.forEach(({ note, noteDate }) => {
-				const timelineItem = timeline.createDiv("timeline-item");
+				const timelineItem = monthContent.createDiv("timeline-item");
 
 				// Timeline dot
 				const timelineDot = timelineItem.createDiv("timeline-dot");
