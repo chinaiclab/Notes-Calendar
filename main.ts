@@ -75,7 +75,9 @@ function getLocalizedText(key: string, language: 'en' | 'zh'): string {
 		'timeDescTooltip': { en: 'Time Desc (Newest first)', zh: '时间降序 (最新在前)' },
 		'timeAscTooltip': { en: 'Time Asc (Oldest first)', zh: '时间升序 (最旧在前)' },
 		'newNoteCreated': { en: 'New note created:', zh: '新建笔记:' },
-		'createNoteFailed': { en: 'Failed to create note:', zh: '创建笔记失败:' }
+		'createNoteFailed': { en: 'Failed to create note:', zh: '创建笔记失败:' },
+		'noNotesThisWeek': { en: 'No notes modified this week', zh: '没有笔记在本周修改' },
+		'yearNoNotes': { en: 'No notes in', zh: '没有笔记在' }
 	};
 
 	return texts[key]?.[language] || key;
@@ -286,6 +288,24 @@ class NotesDatesPlugin extends Plugin {
 				padding: 2px 4px;
 				min-width: 28px;
 				height: 28px;
+			}
+
+			/* File highlighting styles */
+			.file-scroll-highlight {
+				background-color: var(--background-modifier-hover) !important;
+				border-left: 3px solid var(--interactive-accent) !important;
+				padding-left: 8px !important;
+				margin-left: -3px !important;
+				transition: all 0.3s ease;
+			}
+
+			.file-click-highlight {
+				background-color: var(--background-modifier-hover) !important;
+				border-left: 3px solid var(--interactive-accent-hue) !important;
+				padding-left: 8px !important;
+				margin-left: -3px !important;
+				box-shadow: 0 0 8px rgba(var(--interactive-accent-rgb), 0.3) !important;
+				transition: all 0.2s ease;
 			}
 		`;
 		document.head.appendChild(style);
@@ -1137,7 +1157,7 @@ class CalendarView extends ItemView {
 		if (weekNotes.length === 0) {
 			// No notes this week
 			const noNotes = timeline.createDiv("no-notes-message");
-			noNotes.textContent = "没有笔记在本周修改";
+			noNotes.textContent = getLocalizedText('noNotesThisWeek', this.plugin.settings.language);
 			return;
 		}
 
@@ -1370,7 +1390,11 @@ class CalendarView extends ItemView {
 
 					// Check current view type to determine action
 					if (this.plugin.settings.calendarViewType === 'year') {
-						// In year view, directly open the file
+						// In year view, scroll to file and highlight it, then open the file
+						this.scrollToFileInFileExplorer(note);
+						// Add temporary highlight to the clicked file
+						this.highlightFileInExplorer(note, 2000); // Highlight for 2 seconds
+						// Then open the file
 						this.app.workspace.getLeaf().openFile(note);
 					} else {
 						// In month view, jump to the specific month
@@ -1431,7 +1455,8 @@ class CalendarView extends ItemView {
 		// Show message if no notes found
 		if (totalNotes === 0) {
 			const noNotes = timeline.createDiv("no-notes-message");
-			noNotes.textContent = `${year}年没有笔记`;
+			const noNotesText = getLocalizedText('yearNoNotes', this.plugin.settings.language);
+			noNotes.textContent = `${noNotesText} ${year}`;
 		}
 
 		// Auto-scroll to current selected month
@@ -1534,6 +1559,91 @@ class CalendarView extends ItemView {
 		const currentType = this.getViewTypeLabel();
 		const tooltipTemplate = getLocalizedText('switchViewTooltip', this.plugin.settings.language);
 		return tooltipTemplate.replace('{current}', currentType);
+	}
+
+	scrollToFileInFileExplorer(file: TFile) {
+		// Get all file elements and sort them by creation/modification time to match file explorer order
+		const fileElements = document.querySelectorAll('.nav-file-title');
+		let targetFileElement: HTMLElement | null = null;
+
+		// Create array of file elements with their timestamps for sorting
+		const fileElementsWithTime: Array<{ element: HTMLElement; time: number }> = [];
+		fileElements.forEach((element: Element) => {
+			const fileEl = element as HTMLElement;
+			const filePath = fileEl.getAttribute('data-path');
+			if (filePath) {
+				const noteFile = this.plugin.app.vault.getAbstractFileByPath(filePath);
+				if (noteFile && noteFile instanceof TFile) {
+					// Use creation time for consistent ordering (matches file explorer behavior)
+					const fileTime = noteFile.stat.ctime;
+					fileElementsWithTime.push({ element: fileEl, time: fileTime });
+				}
+			}
+		});
+
+		// Sort files by time (newest first)
+		fileElementsWithTime.sort((a, b) => b.time - a.time);
+
+		// Find the target file element
+		fileElementsWithTime.forEach(({ element, time }) => {
+			const filePath = element.getAttribute('data-path');
+			if (filePath === file.path) {
+				targetFileElement = element;
+			}
+		});
+
+		if (targetFileElement) {
+			// Use requestAnimationFrame to ensure DOM is ready
+			requestAnimationFrame(() => {
+				// Scroll the file element into view smoothly
+				targetFileElement.scrollIntoView({
+					behavior: 'smooth',
+					block: 'center'
+				});
+
+				// Add temporary visual feedback
+				targetFileElement.classList.add('file-scroll-highlight');
+				setTimeout(() => {
+					if (targetFileElement) {
+						targetFileElement.classList.remove('file-scroll-highlight');
+					}
+				}, 1500);
+			});
+		}
+	}
+
+	highlightFileInExplorer(file: TFile, duration: number) {
+		// Clear any existing highlights first to avoid conflicts
+		this.clearAllHighlights();
+
+		// Find and highlight only the target file
+		const fileElements = document.querySelectorAll('.nav-file-title');
+		fileElements.forEach((element: Element) => {
+			const fileEl = element as HTMLElement;
+			const filePath = fileEl.getAttribute('data-path');
+			if (filePath === file.path) {
+				fileEl.classList.add('file-click-highlight');
+			}
+		});
+
+		// Remove highlight after specified duration
+		setTimeout(() => {
+			this.clearAllHighlights();
+		}, duration);
+	}
+
+	clearAllHighlights() {
+		// Remove all highlight classes to ensure clean state
+		const highlightedScrollElements = document.querySelectorAll('.file-scroll-highlight');
+		const highlightedClickElements = document.querySelectorAll('.file-click-highlight');
+
+		highlightedScrollElements.forEach((element: Element) => {
+			element.classList.remove('file-scroll-highlight');
+		});
+
+		highlightedClickElements.forEach((element: Element) => {
+			element.classList.remove('file-click-highlight');
+		});
 	}
 
 	async onClose() {
