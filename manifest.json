@@ -1,0 +1,11 @@
+{
+	"id": "notes-calendar",
+	"name": "Notes-Calendar",
+	"version": "1.0.0",
+	"minAppVersion": "1.0.0",
+	"description": "Display creation/modification dates, sort notes by date, and search notes using calendar view",
+	"author": "Chinaiclab",
+	"authorUrl": "https://github.com/chinaiclab",
+	"fundingUrl": "https://github.com/chinaiclab/Notes-Calendar",
+	"isDesktopOnly": false
+}

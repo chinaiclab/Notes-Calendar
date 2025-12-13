@@ -1,0 +1,30 @@
+{
+	"name": "notes-calendar",
+	"version": "1.0.0",
+	"description": "Display creation/modification dates, sort notes by date, and search notes using calendar view",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "node esbuild.config.mjs production",
+		"version": "node version-bump.mjs && git add manifest.json versions.json"
+	},
+	"keywords": ["obsidian", "calendar", "notes", "dates", "productivity"],
+	"author": "Chinaiclab",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/chinaiclab/Notes-Calendar.git"
+	},
+	"homepage": "https://github.com/chinaiclab/Notes-Calendar#readme",
+	"bugs": {
+		"url": "https://github.com/chinaiclab/Notes-Calendar/issues"
+	},
+	"devDependencies": {
+		"@types/node": "^16.11.6",
+		"builtin-modules": "3.2.0",
+		"esbuild": "0.17.3",
+		"obsidian": "latest",
+		"tslib": "2.3.1",
+		"typescript": "4.4.4"
+	}
+}
