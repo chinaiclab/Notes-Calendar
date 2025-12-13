@@ -326,8 +326,8 @@ class NotesDatesPlugin extends Plugin {
 
 			.year-month-timeline {
 				position: sticky;
-				top: 90px; /* Account for h2 (~44px) + controls (~40px) + margin */
-				z-index: 15;
+				top: 88px; /* Position below controls (40 + 8 + 40 = 88px) */
+				z-index: 20;
 				background-color: var(--background-primary);
 				border-bottom: 1px solid var(--background-modifier-border);
 				padding: 8px 0;
@@ -387,8 +387,8 @@ class NotesDatesPlugin extends Plugin {
 			.year-view-timeline-container .timeline {
 				flex: 1;
 				overflow-y: auto;
-				padding: 12px 0;
-				max-height: calc(100vh - 250px); /* Adjust for h2 + controls + month timeline */
+				padding: 8px 16px 16px 16px; /* More padding to prevent cutoff */
+				/* Remove max-height to use flex container constraints */
 			}
 
 			/* Ensure calendar container has proper height constraints */
@@ -414,21 +414,21 @@ class NotesDatesPlugin extends Plugin {
 			}
 
 			/* Ensure header elements are fixed */
-			.workspace-leaf-content[data-type="notes-calendar-view"] h2,
-			.workspace-leaf-content[data-type="notes-calendar-view"] .calendar-controls {
+			.workspace-leaf-content[data-type="notes-calendar-view"] h2 {
 				position: sticky;
 				top: 0;
-				z-index: 20;
+				z-index: 30;
 				background-color: var(--background-primary);
-			}
-
-			.workspace-leaf-content[data-type="notes-calendar-view"] h2 {
 				margin: 0;
-				padding: 16px 16px 8px 16px;
+				padding: 12px 16px;
 				border-bottom: 1px solid var(--background-modifier-border);
 			}
 
 			.workspace-leaf-content[data-type="notes-calendar-view"] .calendar-controls {
+				position: sticky;
+				top: 40px; /* Position below h2 */
+				z-index: 25;
+				background-color: var(--background-primary);
 				padding: 8px 16px;
 				border-bottom: 1px solid var(--background-modifier-border);
 			}
@@ -437,7 +437,7 @@ class NotesDatesPlugin extends Plugin {
 			.year-month-header {
 				margin-top: 20px;
 				margin-bottom: 12px;
-				padding: 0 12px;
+				padding: 8px 12px;
 				border-left: 3px solid var(--interactive-accent);
 				padding-left: 12px;
 				background-color: var(--background-secondary);
@@ -448,6 +448,7 @@ class NotesDatesPlugin extends Plugin {
 
 			.year-month-header:hover {
 				background-color: var(--background-modifier-hover);
+				transform: translateX(2px);
 			}
 
 			/* Month expansion/collapse styles */
