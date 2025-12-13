@@ -71,7 +71,9 @@ function getLocalizedText(key, language) {
     "timeDescTooltip": { en: "Time Desc (Newest first)", zh: "\u65F6\u95F4\u964D\u5E8F (\u6700\u65B0\u5728\u524D)" },
     "timeAscTooltip": { en: "Time Asc (Oldest first)", zh: "\u65F6\u95F4\u5347\u5E8F (\u6700\u65E7\u5728\u524D)" },
     "newNoteCreated": { en: "New note created:", zh: "\u65B0\u5EFA\u7B14\u8BB0:" },
-    "createNoteFailed": { en: "Failed to create note:", zh: "\u521B\u5EFA\u7B14\u8BB0\u5931\u8D25:" }
+    "createNoteFailed": { en: "Failed to create note:", zh: "\u521B\u5EFA\u7B14\u8BB0\u5931\u8D25:" },
+    "noNotesThisWeek": { en: "No notes modified this week", zh: "\u6CA1\u6709\u7B14\u8BB0\u5728\u672C\u5468\u4FEE\u6539" },
+    "yearNoNotes": { en: "No notes in", zh: "\u6CA1\u6709\u7B14\u8BB0\u5728" }
   };
   return ((_a = texts[key]) == null ? void 0 : _a[language]) || key;
 }
@@ -235,6 +237,24 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
 				height: 28px;
 			}
 
+			/* File highlighting styles */
+			.file-scroll-highlight {
+				background-color: var(--background-modifier-hover) !important;
+				border-left: 3px solid var(--interactive-accent) !important;
+				padding-left: 8px !important;
+				margin-left: -3px !important;
+				transition: all 0.3s ease;
+			}
+
+			.file-click-highlight {
+				background-color: var(--background-modifier-hover) !important;
+				border-left: 3px solid var(--interactive-accent-hue) !important;
+				padding-left: 8px !important;
+				margin-left: -3px !important;
+				box-shadow: 0 0 8px rgba(var(--interactive-accent-rgb), 0.3) !important;
+				transition: all 0.2s ease;
+			}
+
 			.year-view-file-highlight {
 				background-color: var(--interactive-accent) !important;
 				color: var(--text-on-accent) !important;
@@ -247,6 +267,120 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
 				0% { transform: scale(1); }
 				50% { transform: scale(1.02); }
 				100% { transform: scale(1); }
+			}
+
+			/* Year view layout styles */
+			.year-view-timeline-container {
+				display: flex;
+				flex-direction: column;
+				height: 100%;
+				max-height: 100%;
+			}
+
+			.year-month-timeline {
+				position: sticky;
+				top: 0;
+				z-index: 10;
+				background-color: var(--background-primary);
+				border-bottom: 1px solid var(--background-modifier-border);
+				padding: 8px 0;
+				flex-shrink: 0;
+			}
+
+			.year-month-timeline-container {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 0 12px;
+				gap: 4px;
+			}
+
+			.year-month-timeline-item {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 6px 8px;
+				border-radius: 6px;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				min-width: 50px;
+				background-color: var(--background-secondary);
+				border: 1px solid var(--background-modifier-border);
+			}
+
+			.year-month-timeline-item:hover {
+				background-color: var(--background-modifier-hover);
+				transform: translateY(-1px);
+			}
+
+			.year-month-timeline-item.active {
+				background-color: var(--interactive-accent);
+				color: var(--text-on-accent);
+				border-color: var(--interactive-accent);
+			}
+
+			.year-month-timeline-item.has-notes {
+				border-color: var(--interactive-accent);
+				font-weight: 500;
+			}
+
+			.year-month-timeline-month {
+				font-size: 12px;
+				font-weight: 500;
+				white-space: nowrap;
+			}
+
+			.year-month-timeline-count {
+				font-size: 10px;
+				opacity: 0.7;
+				margin-top: 2px;
+			}
+
+			/* Timeline should be the only scrollable area */
+			.year-view-timeline-container .timeline {
+				flex: 1;
+				overflow-y: auto;
+				padding: 12px 0;
+				max-height: calc(100vh - 200px); /* Adjust based on header and month timeline height */
+			}
+
+			/* Ensure calendar container has proper height constraints */
+			.calendar-container {
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+			}
+
+			/* Fix calendar view to use full height */
+			.calendar-view {
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+			}
+
+			/* Ensure the content area is properly constrained */
+			.calendar-content {
+				flex: 1;
+				overflow: hidden;
+				display: flex;
+				flex-direction: column;
+			}
+
+			.year-month-header {
+				margin-top: 20px;
+				margin-bottom: 12px;
+				padding: 0 12px;
+				border-left: 3px solid var(--interactive-accent);
+				padding-left: 12px;
+				background-color: var(--background-secondary);
+				border-radius: 0 4px 4px 0;
+			}
+
+			.year-month-header h3 {
+				margin: 0;
+				font-size: 14px;
+				font-weight: 600;
+				color: var(--text-normal);
 			}
 		`;
     document.head.appendChild(style);
@@ -766,6 +900,8 @@ var CalendarView = class extends import_obsidian.ItemView {
   renderMonthView(date, calendarEl, monthYearEl, highlightDate) {
     const year = date.getFullYear();
     const month = date.getMonth();
+    calendarEl.addClass("calendar-view");
+    calendarEl.addClass("calendar-content");
     const monthNames = getMonthNames(this.plugin.settings.language);
     monthYearEl.textContent = `${monthNames[month]} ${year}`;
     const firstDayOfWeek = this.plugin.settings.calendarFirstDayOfWeek;
@@ -831,6 +967,8 @@ var CalendarView = class extends import_obsidian.ItemView {
   }
   renderWeekView(date, calendarEl, monthYearEl, highlightDate) {
     const year = date.getFullYear();
+    calendarEl.addClass("calendar-view");
+    calendarEl.addClass("calendar-content");
     const startOfWeek = new Date(date);
     let day = startOfWeek.getDay();
     const firstDayOfWeek = this.plugin.settings.calendarFirstDayOfWeek;
@@ -877,7 +1015,7 @@ var CalendarView = class extends import_obsidian.ItemView {
     console.log("Total notes found this week:", weekNotes.length);
     if (weekNotes.length === 0) {
       const noNotes = timeline.createDiv("no-notes-message");
-      noNotes.textContent = "\u6CA1\u6709\u7B14\u8BB0\u5728\u672C\u5468\u4FEE\u6539";
+      noNotes.textContent = getLocalizedText("noNotesThisWeek", this.plugin.settings.language);
       return;
     }
     weekNotes.forEach(({ note, noteDate }) => {
@@ -931,6 +1069,8 @@ var CalendarView = class extends import_obsidian.ItemView {
   renderYearView(date, calendarEl, monthYearEl, highlightDate) {
     const year = date.getFullYear();
     monthYearEl.textContent = `${year}`;
+    calendarEl.addClass("calendar-view");
+    calendarEl.addClass("calendar-content");
     const yearContainer = calendarEl.createDiv("year-view-timeline-container");
     const monthTimeline = yearContainer.createDiv("year-month-timeline");
     const monthTimelineContainer = monthTimeline.createDiv("year-month-timeline-container");
@@ -1022,6 +1162,8 @@ var CalendarView = class extends import_obsidian.ItemView {
           e.preventDefault();
           e.stopPropagation();
           if (this.plugin.settings.calendarViewType === "year") {
+            this.scrollToFileInFileExplorer(note);
+            this.highlightFileInExplorer(note, 2e3);
             this.app.workspace.getLeaf().openFile(note);
           } else {
             const noteMonth = noteDate.getMonth();
@@ -1060,7 +1202,8 @@ var CalendarView = class extends import_obsidian.ItemView {
     });
     if (totalNotes === 0) {
       const noNotes = timeline.createDiv("no-notes-message");
-      noNotes.textContent = `${year}\u5E74\u6CA1\u6709\u7B14\u8BB0`;
+      const noNotesText = getLocalizedText("yearNoNotes", this.plugin.settings.language);
+      noNotes.textContent = `${noNotesText} ${year}`;
     }
     setTimeout(() => {
       const selectedMonthItem = monthTimelineContainer.querySelector(".year-month-timeline-item.active");
@@ -1134,6 +1277,67 @@ var CalendarView = class extends import_obsidian.ItemView {
     const currentType = this.getViewTypeLabel();
     const tooltipTemplate = getLocalizedText("switchViewTooltip", this.plugin.settings.language);
     return tooltipTemplate.replace("{current}", currentType);
+  }
+  scrollToFileInFileExplorer(file) {
+    const fileElements = document.querySelectorAll(".nav-file-title");
+    let targetFileElement = null;
+    const fileElementsWithTime = [];
+    fileElements.forEach((element) => {
+      const fileEl = element;
+      const filePath = fileEl.getAttribute("data-path");
+      if (filePath) {
+        const noteFile = this.plugin.app.vault.getAbstractFileByPath(filePath);
+        if (noteFile && noteFile instanceof import_obsidian.TFile) {
+          const fileTime = noteFile.stat.ctime;
+          fileElementsWithTime.push({ element: fileEl, time: fileTime });
+        }
+      }
+    });
+    fileElementsWithTime.sort((a, b) => b.time - a.time);
+    fileElementsWithTime.forEach(({ element, time }) => {
+      const filePath = element.getAttribute("data-path");
+      if (filePath === file.path) {
+        targetFileElement = element;
+      }
+    });
+    if (targetFileElement) {
+      requestAnimationFrame(() => {
+        targetFileElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
+        targetFileElement.classList.add("file-scroll-highlight");
+        setTimeout(() => {
+          if (targetFileElement) {
+            targetFileElement.classList.remove("file-scroll-highlight");
+          }
+        }, 1500);
+      });
+    }
+  }
+  highlightFileInExplorer(file, duration) {
+    this.clearAllHighlights();
+    const fileElements = document.querySelectorAll(".nav-file-title");
+    fileElements.forEach((element) => {
+      const fileEl = element;
+      const filePath = fileEl.getAttribute("data-path");
+      if (filePath === file.path) {
+        fileEl.classList.add("file-click-highlight");
+      }
+    });
+    setTimeout(() => {
+      this.clearAllHighlights();
+    }, duration);
+  }
+  clearAllHighlights() {
+    const highlightedScrollElements = document.querySelectorAll(".file-scroll-highlight");
+    const highlightedClickElements = document.querySelectorAll(".file-click-highlight");
+    highlightedScrollElements.forEach((element) => {
+      element.classList.remove("file-scroll-highlight");
+    });
+    highlightedClickElements.forEach((element) => {
+      element.classList.remove("file-click-highlight");
+    });
   }
   async onClose() {
   }

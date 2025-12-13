@@ -315,6 +315,120 @@ class NotesDatesPlugin extends Plugin {
 				50% { transform: scale(1.02); }
 				100% { transform: scale(1); }
 			}
+
+			/* Year view layout styles */
+			.year-view-timeline-container {
+				display: flex;
+				flex-direction: column;
+				height: 100%;
+				max-height: 100%;
+			}
+
+			.year-month-timeline {
+				position: sticky;
+				top: 0;
+				z-index: 10;
+				background-color: var(--background-primary);
+				border-bottom: 1px solid var(--background-modifier-border);
+				padding: 8px 0;
+				flex-shrink: 0;
+			}
+
+			.year-month-timeline-container {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 0 12px;
+				gap: 4px;
+			}
+
+			.year-month-timeline-item {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 6px 8px;
+				border-radius: 6px;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				min-width: 50px;
+				background-color: var(--background-secondary);
+				border: 1px solid var(--background-modifier-border);
+			}
+
+			.year-month-timeline-item:hover {
+				background-color: var(--background-modifier-hover);
+				transform: translateY(-1px);
+			}
+
+			.year-month-timeline-item.active {
+				background-color: var(--interactive-accent);
+				color: var(--text-on-accent);
+				border-color: var(--interactive-accent);
+			}
+
+			.year-month-timeline-item.has-notes {
+				border-color: var(--interactive-accent);
+				font-weight: 500;
+			}
+
+			.year-month-timeline-month {
+				font-size: 12px;
+				font-weight: 500;
+				white-space: nowrap;
+			}
+
+			.year-month-timeline-count {
+				font-size: 10px;
+				opacity: 0.7;
+				margin-top: 2px;
+			}
+
+			/* Timeline should be the only scrollable area */
+			.year-view-timeline-container .timeline {
+				flex: 1;
+				overflow-y: auto;
+				padding: 12px 0;
+				max-height: calc(100vh - 200px); /* Adjust based on header and month timeline height */
+			}
+
+			/* Ensure calendar container has proper height constraints */
+			.calendar-container {
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+			}
+
+			/* Fix calendar view to use full height */
+			.calendar-view {
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+			}
+
+			/* Ensure the content area is properly constrained */
+			.calendar-content {
+				flex: 1;
+				overflow: hidden;
+				display: flex;
+				flex-direction: column;
+			}
+
+			.year-month-header {
+				margin-top: 20px;
+				margin-bottom: 12px;
+				padding: 0 12px;
+				border-left: 3px solid var(--interactive-accent);
+				padding-left: 12px;
+				background-color: var(--background-secondary);
+				border-radius: 0 4px 4px 0;
+			}
+
+			.year-month-header h3 {
+				margin: 0;
+				font-size: 14px;
+				font-weight: 600;
+				color: var(--text-normal);
+			}
 		`;
 		document.head.appendChild(style);
 	}
@@ -1067,6 +1181,10 @@ class CalendarView extends ItemView {
 		const year = date.getFullYear();
 		const month = date.getMonth();
 
+		// Add proper CSS classes to calendarEl for layout
+		calendarEl.addClass('calendar-view');
+		calendarEl.addClass('calendar-content');
+
 		// Update month/year display with localization
 		const monthNames = getMonthNames(this.plugin.settings.language);
 		monthYearEl.textContent = `${monthNames[month]} ${year}`;
@@ -1165,6 +1283,10 @@ class CalendarView extends ItemView {
 
 	renderWeekView(date: Date, calendarEl: Element, monthYearEl: Element, highlightDate?: Date) {
 		const year = date.getFullYear();
+
+		// Add proper CSS classes to calendarEl for layout
+		calendarEl.addClass('calendar-view');
+		calendarEl.addClass('calendar-content');
 
 		// Find the start of the week (considering user's preference for first day of week)
 		const startOfWeek = new Date(date);
@@ -1306,6 +1428,10 @@ class CalendarView extends ItemView {
 	renderYearView(date: Date, calendarEl: Element, monthYearEl: Element, highlightDate?: Date) {
 		const year = date.getFullYear();
 		monthYearEl.textContent = `${year}`;
+
+		// Add proper CSS classes to calendarEl for layout
+		calendarEl.addClass('calendar-view');
+		calendarEl.addClass('calendar-content');
 
 		// Create year view container
 		const yearContainer = calendarEl.createDiv("year-view-timeline-container");
