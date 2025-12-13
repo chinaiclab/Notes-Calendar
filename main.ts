@@ -326,8 +326,8 @@ class NotesDatesPlugin extends Plugin {
 
 			.year-month-timeline {
 				position: sticky;
-				top: 0;
-				z-index: 10;
+				top: 90px; /* Account for h2 (~44px) + controls (~40px) + margin */
+				z-index: 15;
 				background-color: var(--background-primary);
 				border-bottom: 1px solid var(--background-modifier-border);
 				padding: 8px 0;
@@ -388,7 +388,7 @@ class NotesDatesPlugin extends Plugin {
 				flex: 1;
 				overflow-y: auto;
 				padding: 12px 0;
-				max-height: calc(100vh - 200px); /* Adjust based on header and month timeline height */
+				max-height: calc(100vh - 250px); /* Adjust for h2 + controls + month timeline */
 			}
 
 			/* Ensure calendar container has proper height constraints */
@@ -411,6 +411,26 @@ class NotesDatesPlugin extends Plugin {
 				overflow: hidden;
 				display: flex;
 				flex-direction: column;
+			}
+
+			/* Ensure header elements are fixed */
+			.workspace-leaf-content[data-type="notes-calendar-view"] h2,
+			.workspace-leaf-content[data-type="notes-calendar-view"] .calendar-controls {
+				position: sticky;
+				top: 0;
+				z-index: 20;
+				background-color: var(--background-primary);
+			}
+
+			.workspace-leaf-content[data-type="notes-calendar-view"] h2 {
+				margin: 0;
+				padding: 16px 16px 8px 16px;
+				border-bottom: 1px solid var(--background-modifier-border);
+			}
+
+			.workspace-leaf-content[data-type="notes-calendar-view"] .calendar-controls {
+				padding: 8px 16px;
+				border-bottom: 1px solid var(--background-modifier-border);
 			}
 
 			/* Ensure month headers are positioned correctly */
@@ -1612,7 +1632,7 @@ class CalendarView extends ItemView {
 				cls: "year-month-timeline-count"
 			});
 
-			// Add click handler to toggle month expansion and scroll to month
+			// Add click handler to scroll to month and highlight in timeline
 			monthItem.onclick = () => {
 				// Remove active class from all months
 				monthTimelineContainer.querySelectorAll(".year-month-timeline-item").forEach(item => {
@@ -1624,23 +1644,8 @@ class CalendarView extends ItemView {
 				// Update selected month
 				selectedMonth = monthIndex;
 
-				// Toggle month expansion
-				const monthSection = document.getElementById(`month-${monthIndex}`);
-				if (monthSection) {
-					if (monthSection.hasClass('expanded')) {
-						// Collapse the month
-						monthSection.removeClass('expanded');
-						monthSection.addClass('collapsed');
-						monthItem.removeClass('expanded');
-					} else {
-						// Expand the month
-						monthSection.removeClass('collapsed');
-						monthSection.addClass('expanded');
-						monthItem.addClass('expanded');
-					}
-				}
-
 				// Scroll to the month section
+				const monthSection = document.getElementById(`month-${monthIndex}`);
 				if (monthSection) {
 					monthSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 				}
@@ -1679,6 +1684,35 @@ class CalendarView extends ItemView {
 			const monthTitle = monthSection.createEl("h3", {
 				text: monthTitleText
 			});
+
+			// Add click handler to toggle month expansion
+			monthSection.onclick = (e: MouseEvent) => {
+				e.preventDefault();
+				e.stopPropagation();
+
+				// Toggle month expansion
+				const monthContainerId = `month-${monthIndex}`;
+				const monthContainerEl = document.getElementById(monthContainerId);
+				const monthTimelineItem = document.querySelectorAll('.year-month-timeline-item')[monthIndex];
+
+				if (monthContainerEl) {
+					if (monthContainerEl.hasClass('expanded')) {
+						// Collapse the month
+						monthContainerEl.removeClass('expanded');
+						monthContainerEl.addClass('collapsed');
+						if (monthTimelineItem) {
+							monthTimelineItem.removeClass('expanded');
+						}
+					} else {
+						// Expand the month
+						monthContainerEl.removeClass('collapsed');
+						monthContainerEl.addClass('expanded');
+						if (monthTimelineItem) {
+							monthTimelineItem.addClass('expanded');
+						}
+					}
+				}
+			};
 
 			// Create content container for notes
 			const monthContent = monthContainer.createDiv("year-month-content");
