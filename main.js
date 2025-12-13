@@ -46,13 +46,13 @@ function getLocalizedText(key, language) {
     "filesTotal": { en: "files", zh: "\u4E2A\u6587\u4EF6" },
     "notesTotal": { en: "notes", zh: "\u4E2A\u7B14\u8BB0" },
     "includingSubdirectories": { en: "including subdirectories", zh: "\uFF08\u5305\u542B\u5B50\u76EE\u5F55\uFF09" },
-    "sunday": { en: "Sun", zh: "\u65E5" },
-    "monday": { en: "Mon", zh: "\u4E00" },
-    "tuesday": { en: "Tue", zh: "\u4E8C" },
-    "wednesday": { en: "Wed", zh: "\u4E09" },
-    "thursday": { en: "Thu", zh: "\u56DB" },
-    "friday": { en: "Fri", zh: "\u4E94" },
-    "saturday": { en: "Sat", zh: "\u516D" },
+    "sunday": { en: "Sun", zh: "\u5468\u65E5" },
+    "monday": { en: "Mon", zh: "\u5468\u4E00" },
+    "tuesday": { en: "Tue", zh: "\u5468\u4E8C" },
+    "wednesday": { en: "Wed", zh: "\u5468\u4E09" },
+    "thursday": { en: "Thu", zh: "\u5468\u56DB" },
+    "friday": { en: "Fri", zh: "\u5468\u4E94" },
+    "saturday": { en: "Sat", zh: "\u5468\u516D" },
     "notesCalendar": { en: "Notes Calendar", zh: "\u7B14\u8BB0\u65E5\u5386" },
     "yearView": { en: "Year View", zh: "\u5E74\u89C6\u56FE" },
     "monthView": { en: "Month View", zh: "\u6708\u89C6\u56FE" },
@@ -61,9 +61,17 @@ function getLocalizedText(key, language) {
     "monthViewAbbr": { en: "month view", zh: "\u6708\u89C6\u56FE" },
     "switchView": { en: "Switch view", zh: "\u5207\u6362\u89C6\u56FE" },
     "currentView": { en: "Current", zh: "\u5F53\u524D" },
-    "yearToMonth": { en: "\u{1F4C5}", zh: "\u{1F4C5}" },
-    "monthToYear": { en: "\u{1F4C6}", zh: "\u{1F4C6}" },
-    "switchViewTooltip": { en: "Click to switch view (Current: {current})", zh: "\u70B9\u51FB\u5207\u6362\u89C6\u56FE (\u5F53\u524D: {current})" }
+    "yearToMonth": { en: "\u229E", zh: "\u229E" },
+    "monthToYear": { en: "\u229F", zh: "\u229F" },
+    "switchViewTooltip": { en: "Click to switch view (Current: {current})", zh: "\u70B9\u51FB\u5207\u6362\u89C6\u56FE (\u5F53\u524D: {current})" },
+    "newNote": { en: "New Note", zh: "\u65B0\u5EFA\u7B14\u8BB0" },
+    "newNoteTooltip": { en: "Create new note with current timestamp", zh: "\u4F7F\u7528\u5F53\u524D\u65E5\u671F\u65F6\u95F4\u521B\u5EFA\u65B0\u7B14\u8BB0" },
+    "timeDesc": { en: "Time Desc", zh: "\u65F6\u95F4\u964D\u5E8F" },
+    "timeAsc": { en: "Time Asc", zh: "\u65F6\u95F4\u5347\u5E8F" },
+    "timeDescTooltip": { en: "Time Desc (Newest first)", zh: "\u65F6\u95F4\u964D\u5E8F (\u6700\u65B0\u5728\u524D)" },
+    "timeAscTooltip": { en: "Time Asc (Oldest first)", zh: "\u65F6\u95F4\u5347\u5E8F (\u6700\u65E7\u5728\u524D)" },
+    "newNoteCreated": { en: "New note created:", zh: "\u65B0\u5EFA\u7B14\u8BB0:" },
+    "createNoteFailed": { en: "Failed to create note:", zh: "\u521B\u5EFA\u7B14\u8BB0\u5931\u8D25:" }
   };
   return ((_a = texts[key]) == null ? void 0 : _a[language]) || key;
 }
@@ -130,6 +138,7 @@ var CALENDAR_VIEW_TYPE = "notes-calendar-view";
 var NotesDatesPlugin = class extends import_obsidian.Plugin {
   async onload() {
     await this.loadSettings();
+    this.addCalendarStyles();
     this.registerEvent(this.app.vault.on("create", (file) => {
       if (file instanceof import_obsidian.TFile) {
         this.updateFileDisplay(file);
@@ -161,6 +170,56 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
     this.updateAllFilesDisplay();
     this.setupFileClickListeners();
     this.addSettingTab(new NotesDatesSettingTab(this.app, this));
+  }
+  addCalendarStyles() {
+    const style = document.createElement("style");
+    style.textContent = `
+			.calendar-controls button,
+			.view-switcher-btn,
+			.new-note-button,
+			.sort-button {
+				min-width: 32px;
+				height: 32px;
+				padding: 4px 8px;
+				font-size: 14px;
+				border: 1px solid var(--background-modifier-border);
+				border-radius: 4px;
+				background-color: var(--interactive-normal);
+				color: var(--text-normal);
+				cursor: pointer;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				transition: background-color 0.2s ease;
+			}
+
+			.calendar-controls button:hover,
+			.view-switcher-btn:hover,
+			.new-note-button:hover,
+			.sort-button:hover {
+				background-color: var(--interactive-hover);
+			}
+
+			.calendar-controls button:active,
+			.view-switcher-btn:active,
+			.new-note-button:active,
+			.sort-button:active {
+				background-color: var(--interactive-active);
+			}
+
+			/* Ensure consistent spacing */
+			.calendar-controls {
+				display: flex;
+				align-items: center;
+				gap: 4px;
+				margin-bottom: 12px;
+			}
+
+			.view-selector-single {
+				margin-left: auto;
+			}
+		`;
+    document.head.appendChild(style);
   }
   onunload() {
     this.cleanupFileDisplay();
@@ -250,8 +309,9 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const fileDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const localeString = this.settings.language === "en" ? "en-US" : "zh-CN";
       if (fileDate.getTime() === today.getTime()) {
-        return date.toLocaleTimeString("zh-CN", {
+        return date.toLocaleTimeString(localeString, {
           hour: "2-digit",
           minute: "2-digit",
           hour12: false
@@ -260,13 +320,14 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       if (fileDate.getTime() === yesterday.getTime()) {
-        return "\u6628\u5929 " + date.toLocaleTimeString("zh-CN", {
+        const yesterdayText = this.settings.language === "en" ? "Yesterday" : "\u6628\u5929";
+        return yesterdayText + " " + date.toLocaleTimeString(localeString, {
           hour: "2-digit",
           minute: "2-digit",
           hour12: false
         });
       }
-      return date.toLocaleDateString("zh-CN", {
+      return date.toLocaleDateString(localeString, {
         month: "short",
         day: "numeric"
       });
@@ -382,7 +443,9 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
     const sortedFiles = files.sort((a, b) => {
       return b.stat.mtime - a.stat.mtime;
     });
-    new import_obsidian.Notice(`Sorted ${sortedFiles.length} notes by modification date`);
+    const language = this.settings.language;
+    const sortMsg = language === "en" ? `Sorted ${sortedFiles.length} notes by modification date` : `\u6309\u4FEE\u6539\u65E5\u671F\u6392\u5E8F\u4E86 ${sortedFiles.length} \u4E2A\u7B14\u8BB0`;
+    new import_obsidian.Notice(sortMsg);
   }
   async activateCalendarView() {
     const { workspace } = this.app;
@@ -459,6 +522,7 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
     }
   }
   async jumpCalendarToFileDate(file) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
     try {
       console.log("Jumping to calendar for file:", file.path);
       await this.activateCalendarView();
@@ -487,13 +551,19 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
         if (monthYearEl) {
           calendarView.renderCalendar(new Date(modDate), null, monthYearEl, modDate);
         }
-        new import_obsidian.Notice(`\u5DF2\u8DF3\u8F6C\u5230 ${modDate.toLocaleDateString("zh-CN")} (\u6708\u89C6\u56FE)`, 2e3);
+        const language = ((_e = (_d = (_c = (_b = (_a = this.app) == null ? void 0 : _a.plugins) == null ? void 0 : _b.plugins) == null ? void 0 : _c["notes-calendar"]) == null ? void 0 : _d.settings) == null ? void 0 : _e.language) || "zh";
+        const localizedJumpedTo = getLocalizedText("jumpedToMonthView", language);
+        const localizedMonthView = getLocalizedText("monthViewAbbr", language);
+        const localeString = language === "en" ? "en-US" : "zh-CN";
+        new import_obsidian.Notice(`${localizedJumpedTo} ${modDate.toLocaleDateString(localeString)} (${localizedMonthView})`, 2e3);
       } else {
         console.error("No calendar view found");
       }
     } catch (error) {
       console.error("Error jumping to file date:", error);
-      new import_obsidian.Notice("\u8DF3\u8F6C\u5230\u65E5\u5386\u65F6\u51FA\u9519", 2e3);
+      const language = ((_j = (_i = (_h = (_g = (_f = this.app) == null ? void 0 : _f.plugins) == null ? void 0 : _g.plugins) == null ? void 0 : _h["notes-calendar"]) == null ? void 0 : _i.settings) == null ? void 0 : _j.language) || "zh";
+      const errorMsg = language === "en" ? "Error jumping to calendar" : "\u8DF3\u8F6C\u5230\u65E5\u5386\u65F6\u51FA\u9519";
+      new import_obsidian.Notice(errorMsg, 2e3);
     }
   }
 };
@@ -527,7 +597,7 @@ var CalendarView = class extends import_obsidian.ItemView {
     });
     const newNoteBtn = controlsEl.createEl("button", {
       text: "+",
-      title: "\u65B0\u5EFA\u7B14\u8BB0 - \u4F7F\u7528\u5F53\u524D\u65E5\u671F\u65F6\u95F4\u547D\u540D",
+      title: getLocalizedText("newNoteTooltip", this.plugin.settings.language),
       cls: "new-note-button"
     });
     const viewSelectorEl = controlsEl.createDiv("view-selector-single");
@@ -559,13 +629,13 @@ var CalendarView = class extends import_obsidian.ItemView {
       text: this.plugin.settings.sortOrder === "desc" ? "\u2193" : "\u2191",
       cls: "sort-button"
     });
-    sortBtn.title = this.plugin.settings.sortOrder === "desc" ? "\u65F6\u95F4\u964D\u5E8F (\u6700\u65B0\u5728\u524D)" : "\u65F6\u95F4\u5347\u5E8F (\u6700\u65E7\u5728\u524D)";
+    sortBtn.title = this.plugin.settings.sortOrder === "desc" ? getLocalizedText("timeDescTooltip", this.plugin.settings.language) : getLocalizedText("timeAscTooltip", this.plugin.settings.language);
     sortBtn.onclick = () => {
       const newSortOrder = this.plugin.settings.sortOrder === "desc" ? "asc" : "desc";
       this.plugin.settings.sortOrder = newSortOrder;
       this.plugin.saveSettings();
       sortBtn.textContent = newSortOrder === "desc" ? "\u2193" : "\u2191";
-      sortBtn.title = newSortOrder === "desc" ? "\u65F6\u95F4\u964D\u5E8F (\u6700\u65B0\u5728\u524D)" : "\u65F6\u95F4\u5347\u5E8F (\u6700\u65E7\u5728\u524D)";
+      sortBtn.title = newSortOrder === "desc" ? getLocalizedText("timeDescTooltip", this.plugin.settings.language) : getLocalizedText("timeAscTooltip", this.plugin.settings.language);
       const currentRef = this.currentDate || new Date();
       this.renderCalendar(currentRef, null, monthYearEl);
     };
@@ -938,9 +1008,9 @@ var CalendarView = class extends import_obsidian.ItemView {
     try {
       const newFile = await this.plugin.app.vault.create(fileName, "");
       await this.plugin.app.workspace.getLeaf(true).openFile(newFile);
-      new import_obsidian.Notice(`\u65B0\u5EFA\u7B14\u8BB0: ${fileName}`);
+      new import_obsidian.Notice(`${getLocalizedText("newNoteCreated", this.plugin.settings.language)} ${fileName}`);
     } catch (error) {
-      new import_obsidian.Notice(`\u521B\u5EFA\u7B14\u8BB0\u5931\u8D25: ${error.message}`);
+      new import_obsidian.Notice(`${getLocalizedText("createNoteFailed", this.plugin.settings.language)} ${error.message}`);
     }
   }
   getViewSwitcherLabel() {

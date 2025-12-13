@@ -48,13 +48,13 @@ function getLocalizedText(key: string, language: 'en' | 'zh'): string {
 		'includingSubdirectories': { en: 'including subdirectories', zh: '（包含子目录）' },
 
 		// Weekdays
-		'sunday': { en: 'Sun', zh: '日' },
-		'monday': { en: 'Mon', zh: '一' },
-		'tuesday': { en: 'Tue', zh: '二' },
-		'wednesday': { en: 'Wed', zh: '三' },
-		'thursday': { en: 'Thu', zh: '四' },
-		'friday': { en: 'Fri', zh: '五' },
-		'saturday': { en: 'Sat', zh: '六' },
+		'sunday': { en: 'Sun', zh: '周日' },
+		'monday': { en: 'Mon', zh: '周一' },
+		'tuesday': { en: 'Tue', zh: '周二' },
+		'wednesday': { en: 'Wed', zh: '周三' },
+		'thursday': { en: 'Thu', zh: '周四' },
+		'friday': { en: 'Fri', zh: '周五' },
+		'saturday': { en: 'Sat', zh: '周六' },
 
 		// UI Text
 		'notesCalendar': { en: 'Notes Calendar', zh: '笔记日历' },
@@ -65,9 +65,17 @@ function getLocalizedText(key: string, language: 'en' | 'zh'): string {
 		'monthViewAbbr': { en: 'month view', zh: '月视图' },
 		'switchView': { en: 'Switch view', zh: '切换视图' },
 		'currentView': { en: 'Current', zh: '当前' },
-		'yearToMonth': { en: '📅', zh: '📅' },
-		'monthToYear': { en: '📆', zh: '📆' },
-		'switchViewTooltip': { en: 'Click to switch view (Current: {current})', zh: '点击切换视图 (当前: {current})' }
+		'yearToMonth': { en: '⊞', zh: '⊞' },
+		'monthToYear': { en: '⊟', zh: '⊟' },
+		'switchViewTooltip': { en: 'Click to switch view (Current: {current})', zh: '点击切换视图 (当前: {current})' },
+		'newNote': { en: 'New Note', zh: '新建笔记' },
+		'newNoteTooltip': { en: 'Create new note with current timestamp', zh: '使用当前日期时间创建新笔记' },
+		'timeDesc': { en: 'Time Desc', zh: '时间降序' },
+		'timeAsc': { en: 'Time Asc', zh: '时间升序' },
+		'timeDescTooltip': { en: 'Time Desc (Newest first)', zh: '时间降序 (最新在前)' },
+		'timeAscTooltip': { en: 'Time Asc (Oldest first)', zh: '时间升序 (最旧在前)' },
+		'newNoteCreated': { en: 'New note created:', zh: '新建笔记:' },
+		'createNoteFailed': { en: 'Failed to create note:', zh: '创建笔记失败:' }
 	};
 
 	return texts[key]?.[language] || key;
@@ -151,6 +159,9 @@ class NotesDatesPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
+		// Add CSS styles for consistent button sizes
+		this.addCalendarStyles();
+
 		// Add file explorer hooks for date display
 		this.registerEvent(
 			this.app.vault.on('create', (file) => {
@@ -205,6 +216,58 @@ class NotesDatesPlugin extends Plugin {
 
 		// Add settings tab
 		this.addSettingTab(new NotesDatesSettingTab(this.app, this));
+	}
+
+	addCalendarStyles() {
+		// Create style element for consistent button sizes
+		const style = document.createElement('style');
+		style.textContent = `
+			.calendar-controls button,
+			.view-switcher-btn,
+			.new-note-button,
+			.sort-button {
+				min-width: 32px;
+				height: 32px;
+				padding: 4px 8px;
+				font-size: 14px;
+				border: 1px solid var(--background-modifier-border);
+				border-radius: 4px;
+				background-color: var(--interactive-normal);
+				color: var(--text-normal);
+				cursor: pointer;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				transition: background-color 0.2s ease;
+			}
+
+			.calendar-controls button:hover,
+			.view-switcher-btn:hover,
+			.new-note-button:hover,
+			.sort-button:hover {
+				background-color: var(--interactive-hover);
+			}
+
+			.calendar-controls button:active,
+			.view-switcher-btn:active,
+			.new-note-button:active,
+			.sort-button:active {
+				background-color: var(--interactive-active);
+			}
+
+			/* Ensure consistent spacing */
+			.calendar-controls {
+				display: flex;
+				align-items: center;
+				gap: 4px;
+				margin-bottom: 12px;
+			}
+
+			.view-selector-single {
+				margin-left: auto;
+			}
+		`;
+		document.head.appendChild(style);
 	}
 
 	onunload() {
@@ -331,21 +394,23 @@ class NotesDatesPlugin extends Plugin {
 			const now = new Date();
 			const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 			const fileDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+			const localeString = this.settings.language === 'en' ? 'en-US' : 'zh-CN';
 
 			// 如果是今天，只显示时间（24小时制）
 			if (fileDate.getTime() === today.getTime()) {
-				return date.toLocaleTimeString('zh-CN', {
+				return date.toLocaleTimeString(localeString, {
 					hour: '2-digit',
 					minute: '2-digit',
 					hour12: false
 				});
 			}
 
-			// 如果是昨天，显示"昨天 HH:mm"
+			// 如果是昨天，显示"昨天"或"Yesterday" + 时间
 			const yesterday = new Date(today);
 			yesterday.setDate(yesterday.getDate() - 1);
 			if (fileDate.getTime() === yesterday.getTime()) {
-				return '昨天 ' + date.toLocaleTimeString('zh-CN', {
+				const yesterdayText = this.settings.language === 'en' ? 'Yesterday' : '昨天';
+				return yesterdayText + ' ' + date.toLocaleTimeString(localeString, {
 					hour: '2-digit',
 					minute: '2-digit',
 					hour12: false
@@ -353,7 +418,7 @@ class NotesDatesPlugin extends Plugin {
 			}
 
 			// 其他情况显示月日
-			return date.toLocaleDateString('zh-CN', {
+			return date.toLocaleDateString(localeString, {
 				month: 'short',
 				day: 'numeric'
 			});
@@ -503,7 +568,11 @@ class NotesDatesPlugin extends Plugin {
 			return b.stat.mtime - a.stat.mtime;
 		});
 
-		new Notice(`Sorted ${sortedFiles.length} notes by modification date`);
+		const language = this.settings.language;
+		const sortMsg = language === 'en'
+			? `Sorted ${sortedFiles.length} notes by modification date`
+			: `按修改日期排序了 ${sortedFiles.length} 个笔记`;
+		new Notice(sortMsg);
 
 		// You might want to implement a custom sort view here
 		// For now, we'll just show a notification
@@ -664,13 +733,19 @@ class NotesDatesPlugin extends Plugin {
 					calendarView.renderCalendar(new Date(modDate), null, monthYearEl, modDate);
 				}
 
-				new Notice(`已跳转到 ${modDate.toLocaleDateString('zh-CN')} (月视图)`, 2000);
+				const language = this.app?.plugins?.plugins?.['notes-calendar']?.settings?.language || 'zh';
+			const localizedJumpedTo = getLocalizedText('jumpedToMonthView', language);
+			const localizedMonthView = getLocalizedText('monthViewAbbr', language);
+			const localeString = language === 'en' ? 'en-US' : 'zh-CN';
+			new Notice(`${localizedJumpedTo} ${modDate.toLocaleDateString(localeString)} (${localizedMonthView})`, 2000);
 			} else {
 				console.error('No calendar view found');
 			}
 		} catch (error) {
 			console.error('Error jumping to file date:', error);
-			new Notice('跳转到日历时出错', 2000);
+			const language = this.app?.plugins?.plugins?.['notes-calendar']?.settings?.language || 'zh';
+			const errorMsg = language === 'en' ? 'Error jumping to calendar' : '跳转到日历时出错';
+			new Notice(errorMsg, 2000);
 		}
 	}
 }
@@ -718,7 +793,7 @@ class CalendarView extends ItemView {
 		// Add new note button
 		const newNoteBtn = controlsEl.createEl("button", {
 			text: "+",
-			title: "新建笔记 - 使用当前日期时间命名",
+			title: getLocalizedText('newNoteTooltip', this.plugin.settings.language),
 			cls: "new-note-button"
 		});
 
@@ -764,7 +839,9 @@ class CalendarView extends ItemView {
 			text: this.plugin.settings.sortOrder === 'desc' ? '↓' : '↑',
 			cls: "sort-button"
 		});
-		sortBtn.title = this.plugin.settings.sortOrder === 'desc' ? '时间降序 (最新在前)' : '时间升序 (最旧在前)';
+		sortBtn.title = this.plugin.settings.sortOrder === 'desc' ?
+			getLocalizedText('timeDescTooltip', this.plugin.settings.language) :
+			getLocalizedText('timeAscTooltip', this.plugin.settings.language);
 		sortBtn.onclick = () => {
 			// Toggle sort order
 			const newSortOrder = this.plugin.settings.sortOrder === 'desc' ? 'asc' : 'desc';
@@ -773,7 +850,9 @@ class CalendarView extends ItemView {
 
 			// Update button text and title
 			sortBtn.textContent = newSortOrder === 'desc' ? '↓' : '↑';
-			sortBtn.title = newSortOrder === 'desc' ? '时间降序 (最新在前)' : '时间升序 (最旧在前)';
+			sortBtn.title = newSortOrder === 'desc' ?
+				getLocalizedText('timeDescTooltip', this.plugin.settings.language) :
+				getLocalizedText('timeAscTooltip', this.plugin.settings.language);
 
 			// Re-render current view with new sort order
 			const currentRef = (this as any).currentDate || new Date();
@@ -1350,9 +1429,9 @@ class CalendarView extends ItemView {
 			// Open the new file in a new pane
 			await this.plugin.app.workspace.getLeaf(true).openFile(newFile);
 
-			new Notice(`新建笔记: ${fileName}`);
+			new Notice(`${getLocalizedText('newNoteCreated', this.plugin.settings.language)} ${fileName}`);
 		} catch (error) {
-			new Notice(`创建笔记失败: ${error.message}`);
+			new Notice(`${getLocalizedText('createNoteFailed', this.plugin.settings.language)} ${error.message}`);
 		}
 	}
 
