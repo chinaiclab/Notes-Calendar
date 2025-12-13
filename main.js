@@ -178,9 +178,9 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
 			.view-switcher-btn,
 			.new-note-button,
 			.sort-button {
-				min-width: 32px;
-				height: 32px;
-				padding: 4px 8px;
+				min-width: 28px;
+				height: 28px;
+				padding: 2px 6px;
 				font-size: 14px;
 				border: 1px solid var(--background-modifier-border);
 				border-radius: 4px;
@@ -189,7 +189,7 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
 				cursor: pointer;
 				display: inline-flex;
 				align-items: center;
-				justify-content: center;
+				justify-content: flex-start;
 				transition: background-color 0.2s ease;
 			}
 
@@ -207,16 +207,36 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
 				background-color: var(--interactive-active);
 			}
 
-			/* Ensure consistent spacing */
+			/* Ensure consistent spacing and left alignment */
 			.calendar-controls {
 				display: flex;
 				align-items: center;
 				gap: 4px;
 				margin-bottom: 12px;
+				justify-content: flex-start;
 			}
 
 			.view-selector-single {
-				margin-left: auto;
+				/* Removed margin-left: auto to align all buttons to the left */
+			}
+
+			/* Make icons even smaller */
+			.calendar-controls button,
+			.view-switcher-btn,
+			.new-note-button {
+				font-size: 14px;
+				font-weight: normal;
+				padding: 2px 6px;
+				min-width: 28px;
+				height: 28px;
+			}
+
+			/* Special sizing for text buttons */
+			.sort-button {
+				font-size: 10px;
+				padding: 2px 4px;
+				min-width: 28px;
+				height: 28px;
 			}
 		`;
     document.head.appendChild(style);
@@ -443,9 +463,6 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
     const sortedFiles = files.sort((a, b) => {
       return b.stat.mtime - a.stat.mtime;
     });
-    const language = this.settings.language;
-    const sortMsg = language === "en" ? `Sorted ${sortedFiles.length} notes by modification date` : `\u6309\u4FEE\u6539\u65E5\u671F\u6392\u5E8F\u4E86 ${sortedFiles.length} \u4E2A\u7B14\u8BB0`;
-    new import_obsidian.Notice(sortMsg);
   }
   async activateCalendarView() {
     const { workspace } = this.app;
@@ -522,7 +539,7 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
     }
   }
   async jumpCalendarToFileDate(file) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+    var _a, _b, _c, _d, _e;
     try {
       console.log("Jumping to calendar for file:", file.path);
       await this.activateCalendarView();
@@ -551,17 +568,12 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
         if (monthYearEl) {
           calendarView.renderCalendar(new Date(modDate), null, monthYearEl, modDate);
         }
-        const language = ((_e = (_d = (_c = (_b = (_a = this.app) == null ? void 0 : _a.plugins) == null ? void 0 : _b.plugins) == null ? void 0 : _c["notes-calendar"]) == null ? void 0 : _d.settings) == null ? void 0 : _e.language) || "zh";
-        const localizedJumpedTo = getLocalizedText("jumpedToMonthView", language);
-        const localizedMonthView = getLocalizedText("monthViewAbbr", language);
-        const localeString = language === "en" ? "en-US" : "zh-CN";
-        new import_obsidian.Notice(`${localizedJumpedTo} ${modDate.toLocaleDateString(localeString)} (${localizedMonthView})`, 2e3);
       } else {
         console.error("No calendar view found");
       }
     } catch (error) {
       console.error("Error jumping to file date:", error);
-      const language = ((_j = (_i = (_h = (_g = (_f = this.app) == null ? void 0 : _f.plugins) == null ? void 0 : _g.plugins) == null ? void 0 : _h["notes-calendar"]) == null ? void 0 : _i.settings) == null ? void 0 : _j.language) || "zh";
+      const language = ((_e = (_d = (_c = (_b = (_a = this.app) == null ? void 0 : _a.plugins) == null ? void 0 : _b.plugins) == null ? void 0 : _c["notes-calendar"]) == null ? void 0 : _d.settings) == null ? void 0 : _e.language) || "zh";
       const errorMsg = language === "en" ? "Error jumping to calendar" : "\u8DF3\u8F6C\u5230\u65E5\u5386\u65F6\u51FA\u9519";
       new import_obsidian.Notice(errorMsg, 2e3);
     }
@@ -576,7 +588,7 @@ var CalendarView = class extends import_obsidian.ItemView {
     return CALENDAR_VIEW_TYPE;
   }
   getDisplayText() {
-    return "Notes Calendar";
+    return getLocalizedText("notesCalendar", this.plugin.settings.language);
   }
   getIcon() {
     return "calendar";
@@ -942,9 +954,6 @@ var CalendarView = class extends import_obsidian.ItemView {
           if (monthYearEl2) {
             this.renderCalendar(targetDate, null, monthYearEl2, targetDate);
           }
-          const jumpedToText = getLocalizedText("jumpedToMonthView", this.plugin.settings.language);
-          const monthViewText = getLocalizedText("monthViewAbbr", this.plugin.settings.language);
-          new import_obsidian.Notice(`${jumpedToText} ${monthNames2[noteMonth]} ${noteYear} ${monthViewText}`, 2e3);
         };
         const noteTitle = noteContent.createEl("div", {
           text: note.basename,
@@ -1213,10 +1222,6 @@ var NotesDatesSettingTab = class extends import_obsidian.PluginSettingTab {
       this.plugin.settings.dateFormat = value;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian.Setting(containerEl).setName("Enable Calendar View").setDesc("Show calendar view for browsing notes by date").addToggle((toggle) => toggle.setValue(this.plugin.settings.enableCalendarView).onChange(async (value) => {
-      this.plugin.settings.enableCalendarView = value;
-      await this.plugin.saveSettings();
-    }));
     new import_obsidian.Setting(containerEl).setName("Show File Count in Folders").setDesc("Display the number of markdown files and notes in each folder").addToggle((toggle) => toggle.setValue(this.plugin.settings.showFileCount).onChange(async (value) => {
       this.plugin.settings.showFileCount = value;
       await this.plugin.saveSettings();
@@ -1243,6 +1248,13 @@ var NotesDatesSettingTab = class extends import_obsidian.PluginSettingTab {
       await this.plugin.saveSettings();
       const calendarView = (_a = this.plugin.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE)[0]) == null ? void 0 : _a.view;
       if (calendarView) {
+        const container = calendarView.containerEl.children[1];
+        if (container) {
+          const titleElement = container.querySelector("h2");
+          if (titleElement) {
+            titleElement.textContent = getLocalizedText("notesCalendar", this.plugin.settings.language);
+          }
+        }
         const monthYearEl = calendarView.monthYearEl;
         if (monthYearEl) {
           const currentDate = calendarView.currentDate || new Date();

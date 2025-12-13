@@ -226,9 +226,9 @@ class NotesDatesPlugin extends Plugin {
 			.view-switcher-btn,
 			.new-note-button,
 			.sort-button {
-				min-width: 32px;
-				height: 32px;
-				padding: 4px 8px;
+				min-width: 28px;
+				height: 28px;
+				padding: 2px 6px;
 				font-size: 14px;
 				border: 1px solid var(--background-modifier-border);
 				border-radius: 4px;
@@ -237,7 +237,7 @@ class NotesDatesPlugin extends Plugin {
 				cursor: pointer;
 				display: inline-flex;
 				align-items: center;
-				justify-content: center;
+				justify-content: flex-start;
 				transition: background-color 0.2s ease;
 			}
 
@@ -255,16 +255,36 @@ class NotesDatesPlugin extends Plugin {
 				background-color: var(--interactive-active);
 			}
 
-			/* Ensure consistent spacing */
+			/* Ensure consistent spacing and left alignment */
 			.calendar-controls {
 				display: flex;
 				align-items: center;
 				gap: 4px;
 				margin-bottom: 12px;
+				justify-content: flex-start;
 			}
 
 			.view-selector-single {
-				margin-left: auto;
+				/* Removed margin-left: auto to align all buttons to the left */
+			}
+
+			/* Make icons even smaller */
+			.calendar-controls button,
+			.view-switcher-btn,
+			.new-note-button {
+				font-size: 14px;
+				font-weight: normal;
+				padding: 2px 6px;
+				min-width: 28px;
+				height: 28px;
+			}
+
+			/* Special sizing for text buttons */
+			.sort-button {
+				font-size: 10px;
+				padding: 2px 4px;
+				min-width: 28px;
+				height: 28px;
 			}
 		`;
 		document.head.appendChild(style);
@@ -568,11 +588,7 @@ class NotesDatesPlugin extends Plugin {
 			return b.stat.mtime - a.stat.mtime;
 		});
 
-		const language = this.settings.language;
-		const sortMsg = language === 'en'
-			? `Sorted ${sortedFiles.length} notes by modification date`
-			: `按修改日期排序了 ${sortedFiles.length} 个笔记`;
-		new Notice(sortMsg);
+		// Sort notification removed for cleaner user experience
 
 		// You might want to implement a custom sort view here
 		// For now, we'll just show a notification
@@ -733,11 +749,7 @@ class NotesDatesPlugin extends Plugin {
 					calendarView.renderCalendar(new Date(modDate), null, monthYearEl, modDate);
 				}
 
-				const language = this.app?.plugins?.plugins?.['notes-calendar']?.settings?.language || 'zh';
-			const localizedJumpedTo = getLocalizedText('jumpedToMonthView', language);
-			const localizedMonthView = getLocalizedText('monthViewAbbr', language);
-			const localeString = language === 'en' ? 'en-US' : 'zh-CN';
-			new Notice(`${localizedJumpedTo} ${modDate.toLocaleDateString(localeString)} (${localizedMonthView})`, 2000);
+				// Jump notification removed - direct navigation without interruption
 			} else {
 				console.error('No calendar view found');
 			}
@@ -763,7 +775,7 @@ class CalendarView extends ItemView {
 	}
 
 	getDisplayText() {
-		return "Notes Calendar";
+		return getLocalizedText('notesCalendar', this.plugin.settings.language);
 	}
 
 	getIcon() {
@@ -1323,10 +1335,7 @@ class CalendarView extends ItemView {
 						this.renderCalendar(targetDate, null, monthYearEl, targetDate);
 					}
 
-					// Show notification
-					const jumpedToText = getLocalizedText('jumpedToMonthView', this.plugin.settings.language);
-					const monthViewText = getLocalizedText('monthViewAbbr', this.plugin.settings.language);
-					new Notice(`${jumpedToText} ${monthNames[noteMonth]} ${noteYear} ${monthViewText}`, 2000);
+					// Jump notification removed - direct navigation without interruption
 				};
 
 				// Note title
@@ -1748,18 +1757,7 @@ class NotesDatesSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
-			.setName('Enable Calendar View')
-			.setDesc('Show calendar view for browsing notes by date')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.enableCalendarView)
-				.onChange(async (value) => {
-					this.plugin.settings.enableCalendarView = value;
-					await this.plugin.saveSettings();
-				}));
-
-		
-		new Setting(containerEl)
+				new Setting(containerEl)
 			.setName('Show File Count in Folders')
 			.setDesc('Display the number of markdown files and notes in each folder')
 			.addToggle(toggle => toggle
@@ -1829,6 +1827,16 @@ class NotesDatesSettingTab extends PluginSettingTab {
 					// Re-render the calendar view with new language
 					const calendarView = this.plugin.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE)[0]?.view;
 					if (calendarView) {
+						// Update the H2 title with new language
+						const container = calendarView.containerEl.children[1];
+						if (container) {
+							const titleElement = container.querySelector('h2');
+							if (titleElement) {
+								titleElement.textContent = getLocalizedText('notesCalendar', this.plugin.settings.language);
+							}
+						}
+
+						// Update calendar content
 						const monthYearEl = (calendarView as any).monthYearEl;
 						if (monthYearEl) {
 							const currentDate = (calendarView as any).currentDate || new Date();
