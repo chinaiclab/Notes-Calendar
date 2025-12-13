@@ -136,6 +136,10 @@ var DEFAULT_SETTINGS = {
 };
 var CALENDAR_VIEW_TYPE = "notes-calendar-view";
 var NotesDatesPlugin = class extends import_obsidian.Plugin {
+  constructor() {
+    super(...arguments);
+    this.lastLanguage = "zh";
+  }
   async onload() {
     await this.loadSettings();
     this.addCalendarStyles();
@@ -268,10 +272,17 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
   }
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    this.lastLanguage = this.settings.language;
   }
-  async saveSettings() {
+  async saveSettings(skipFileDisplayUpdate = false) {
     await this.saveData(this.settings);
-    this.updateAllFilesDisplay();
+    const languageChanged = this.lastLanguage !== this.settings.language;
+    if (languageChanged) {
+      this.lastLanguage = this.settings.language;
+    }
+    if (!skipFileDisplayUpdate && languageChanged) {
+      this.updateAllFilesDisplay();
+    }
   }
   updateFileDisplay(_file) {
     this.updateAllFilesDisplay();
@@ -280,29 +291,53 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
     this.updateFileExplorerDates();
   }
   updateFileExplorerDates() {
-    setTimeout(() => {
-      const fileTitles = document.querySelectorAll(".nav-file-title");
-      const folderTitles = document.querySelectorAll(".nav-folder-title");
-      fileTitles.forEach((fileTitleElement) => {
-        const fileTitle = fileTitleElement;
-        const filePath = fileTitle.getAttribute("data-path");
-        if (filePath) {
-          const file = this.app.vault.getAbstractFileByPath(filePath);
-          if (file && file instanceof import_obsidian.TFile && file.extension === "md") {
-            this.addDateDisplayToFileTitle(fileTitle, file);
-          }
+    const fileTitles = document.querySelectorAll(".nav-file-title");
+    const folderTitles = document.querySelectorAll(".nav-folder-title");
+    fileTitles.forEach((fileTitleElement) => {
+      const fileTitle = fileTitleElement;
+      const filePath = fileTitle.getAttribute("data-path");
+      if (filePath) {
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (file && file instanceof import_obsidian.TFile && file.extension === "md") {
+          this.addDateDisplayToFileTitle(fileTitle, file);
+        }
+      }
+    });
+    if (this.settings.showFileCount) {
+      folderTitles.forEach((folderTitleElement) => {
+        const folderTitle = folderTitleElement;
+        const folderPath = this.getFolderPathFromTitle(folderTitle);
+        if (folderPath) {
+          this.addFileCountToFolder(folderTitle, folderPath);
         }
       });
-      if (this.settings.showFileCount) {
-        folderTitles.forEach((folderTitleElement) => {
-          const folderTitle = folderTitleElement;
-          const folderPath = this.getFolderPathFromTitle(folderTitle);
-          if (folderPath) {
-            this.addFileCountToFolder(folderTitle, folderPath);
-          }
-        });
-      }
+    }
+  }
+  updateFileExplorerDatesDelayed() {
+    setTimeout(() => {
+      this.updateFileExplorerDates();
     }, 100);
+  }
+  applyCurrentLanguageImmediately() {
+    this.updateFileExplorerDates();
+  }
+  ensureLanguageConsistency() {
+    const currentLanguage = this.settings.language;
+    const fileDateElements = document.querySelectorAll(".date-display");
+    const fileCountElements = document.querySelectorAll(".file-count");
+    let needsUpdate = false;
+    fileCountElements.forEach((element) => {
+      const text = element.textContent || "";
+      if (currentLanguage === "en" && (text.includes("\u6587\u4EF6") || text.includes("\u7B14\u8BB0"))) {
+        needsUpdate = true;
+      } else if (currentLanguage === "zh" && (text.includes("files") || text.includes("notes"))) {
+        needsUpdate = true;
+      }
+    });
+    if (needsUpdate) {
+      console.log("Language inconsistency detected, updating file displays");
+      this.updateFileExplorerDates();
+    }
   }
   addDateDisplayToFileTitle(fileTitle, file) {
     const existingDate = fileTitle.querySelector(".date-display");
@@ -487,8 +522,8 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
           if (addedNodes.some((node) => node.nodeType === Node.ELEMENT_NODE && (node.querySelector(".nav-file-title") || node.querySelector(".nav-folder-title") || node.classList.contains("nav-file-title") || node.classList.contains("nav-folder-title")))) {
             setTimeout(() => {
               this.addFileClickListeners();
-              this.updateFileExplorerDates();
-            }, 100);
+              this.applyCurrentLanguageImmediately();
+            }, 50);
           }
         }
       });
@@ -500,7 +535,9 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
         subtree: true
       });
     }
-    setInterval(() => this.addFileClickListeners(), 2e3);
+    setInterval(() => {
+      this.ensureLanguageConsistency();
+    }, 5e3);
   }
   addFileClickListeners() {
     const fileTitles = document.querySelectorAll(".nav-file-title");
@@ -539,7 +576,6 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
     }
   }
   async jumpCalendarToFileDate(file) {
-    var _a, _b, _c, _d, _e;
     try {
       console.log("Jumping to calendar for file:", file.path);
       await this.activateCalendarView();
@@ -550,7 +586,7 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
         console.log("Jumping to date:", modDate);
         const originalViewType = this.settings.calendarViewType;
         this.settings.calendarViewType = "month";
-        await this.saveSettings();
+        await this.saveSettings(true);
         const controlsEl = calendarView.controlsEl;
         if (controlsEl) {
           const viewSwitcherBtn = controlsEl.querySelector(".view-switcher-btn");
@@ -568,13 +604,15 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
         if (monthYearEl) {
           calendarView.renderCalendar(new Date(modDate), null, monthYearEl, modDate);
         }
+        Promise.resolve().then(() => {
+          this.applyCurrentLanguageImmediately();
+        });
       } else {
         console.error("No calendar view found");
       }
     } catch (error) {
       console.error("Error jumping to file date:", error);
-      const language = ((_e = (_d = (_c = (_b = (_a = this.app) == null ? void 0 : _a.plugins) == null ? void 0 : _b.plugins) == null ? void 0 : _c["notes-calendar"]) == null ? void 0 : _d.settings) == null ? void 0 : _e.language) || "zh";
-      const errorMsg = language === "en" ? "Error jumping to calendar" : "\u8DF3\u8F6C\u5230\u65E5\u5386\u65F6\u51FA\u9519";
+      const errorMsg = this.settings.language === "en" ? "Error jumping to calendar" : "\u8DF3\u8F6C\u5230\u65E5\u5386\u65F6\u51FA\u9519";
       new import_obsidian.Notice(errorMsg, 2e3);
     }
   }
@@ -939,20 +977,24 @@ var CalendarView = class extends import_obsidian.ItemView {
         noteContent.onclick = (e) => {
           e.preventDefault();
           e.stopPropagation();
-          const noteMonth = noteDate.getMonth();
-          const noteYear = noteDate.getFullYear();
-          const monthNames2 = getMonthNames(this.plugin.settings.language);
-          this.plugin.settings.calendarViewType = "month";
-          this.plugin.saveSettings();
-          const viewSwitcherBtn = document.querySelector(".view-switcher-btn");
-          if (viewSwitcherBtn) {
-            viewSwitcherBtn.textContent = this.getViewSwitcherLabel();
-            viewSwitcherBtn.title = this.getViewSwitcherTooltip();
-          }
-          const targetDate = new Date(noteYear, noteMonth, 1);
-          const monthYearEl2 = this.monthYearEl;
-          if (monthYearEl2) {
-            this.renderCalendar(targetDate, null, monthYearEl2, targetDate);
+          if (this.plugin.settings.calendarViewType === "year") {
+            this.app.workspace.getLeaf().openFile(note);
+          } else {
+            const noteMonth = noteDate.getMonth();
+            const noteYear = noteDate.getFullYear();
+            const monthNames2 = getMonthNames(this.plugin.settings.language);
+            this.plugin.settings.calendarViewType = "month";
+            this.plugin.saveSettings();
+            const viewSwitcherBtn = document.querySelector(".view-switcher-btn");
+            if (viewSwitcherBtn) {
+              viewSwitcherBtn.textContent = this.getViewSwitcherLabel();
+              viewSwitcherBtn.title = this.getViewSwitcherTooltip();
+            }
+            const targetDate = new Date(noteYear, noteMonth, 1);
+            const monthYearEl2 = this.monthYearEl;
+            if (monthYearEl2) {
+              this.renderCalendar(targetDate, null, monthYearEl2, targetDate);
+            }
           }
         };
         const noteTitle = noteContent.createEl("div", {

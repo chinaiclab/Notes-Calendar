@@ -155,6 +155,7 @@ const CALENDAR_VIEW_TYPE = "notes-calendar-view";
 
 class NotesDatesPlugin extends Plugin {
 	settings: NoteDatesSettings;
+	private lastLanguage: 'en' | 'zh' = 'zh'; // Track last language to detect changes
 
 	async onload() {
 		await this.loadSettings();
@@ -328,11 +329,22 @@ class NotesDatesPlugin extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.lastLanguage = this.settings.language; // Initialize language tracking
 	}
 
-	async saveSettings() {
+	async saveSettings(skipFileDisplayUpdate: boolean = false) {
 		await this.saveData(this.settings);
-		this.updateAllFilesDisplay();
+
+		// Check if language changed and update file display accordingly
+		const languageChanged = this.lastLanguage !== this.settings.language;
+		if (languageChanged) {
+			this.lastLanguage = this.settings.language; // Update tracking
+		}
+
+		// Only update file display if language changed or not explicitly skipped
+		if (!skipFileDisplayUpdate && languageChanged) {
+			this.updateAllFilesDisplay();
+		}
 	}
 
 	updateFileDisplay(_file: TFile) {
@@ -347,36 +359,74 @@ class NotesDatesPlugin extends Plugin {
 	}
 
 	updateFileExplorerDates() {
-		// 延迟执行以确保DOM完全加载
-		setTimeout(() => {
-			const fileTitles = document.querySelectorAll('.nav-file-title');
-			const folderTitles = document.querySelectorAll('.nav-folder-title');
+		// Update immediately without delay when called from applyCurrentLanguageImmediately
+		const fileTitles = document.querySelectorAll('.nav-file-title');
+		const folderTitles = document.querySelectorAll('.nav-folder-title');
 
-			// 处理文件
-			fileTitles.forEach((fileTitleElement: Element) => {
-				const fileTitle = fileTitleElement as HTMLElement;
-				const filePath = fileTitle.getAttribute('data-path');
+		// 处理文件
+		fileTitles.forEach((fileTitleElement: Element) => {
+			const fileTitle = fileTitleElement as HTMLElement;
+			const filePath = fileTitle.getAttribute('data-path');
 
-				if (filePath) {
-					const file = this.app.vault.getAbstractFileByPath(filePath);
-					if (file && file instanceof TFile && file.extension === 'md') {
-						this.addDateDisplayToFileTitle(fileTitle, file);
-					}
+			if (filePath) {
+				const file = this.app.vault.getAbstractFileByPath(filePath);
+				if (file && file instanceof TFile && file.extension === 'md') {
+					this.addDateDisplayToFileTitle(fileTitle, file);
+				}
+			}
+		});
+
+		// 处理文件夹
+		if (this.settings.showFileCount) {
+			folderTitles.forEach((folderTitleElement: Element) => {
+				const folderTitle = folderTitleElement as HTMLElement;
+				const folderPath = this.getFolderPathFromTitle(folderTitle);
+
+				if (folderPath) {
+					this.addFileCountToFolder(folderTitle, folderPath);
 				}
 			});
+		}
+	}
 
-			// 处理文件夹
-			if (this.settings.showFileCount) {
-				folderTitles.forEach((folderTitleElement: Element) => {
-					const folderTitle = folderTitleElement as HTMLElement;
-					const folderPath = this.getFolderPathFromTitle(folderTitle);
-
-					if (folderPath) {
-						this.addFileCountToFolder(folderTitle, folderPath);
-					}
-				});
-			}
+	updateFileExplorerDatesDelayed() {
+		// Delayed version for use in cases where we need to wait for DOM updates
+		setTimeout(() => {
+			this.updateFileExplorerDates();
 		}, 100);
+	}
+
+	applyCurrentLanguageImmediately() {
+		// Force update all file displays with current language settings
+		// This ensures language consistency after any operation
+		this.updateFileExplorerDates();
+	}
+
+	ensureLanguageConsistency() {
+		// Check if current language settings are properly applied
+		const currentLanguage = this.settings.language;
+		const fileDateElements = document.querySelectorAll('.date-display');
+		const fileCountElements = document.querySelectorAll('.file-count');
+
+		// Quick check for obvious language mismatches
+		let needsUpdate = false;
+
+		// Check file counts for language inconsistencies
+		fileCountElements.forEach((element: Element) => {
+			const text = element.textContent || '';
+			// If English is set but we see Chinese characters, or vice versa
+			if (currentLanguage === 'en' && (text.includes('文件') || text.includes('笔记'))) {
+				needsUpdate = true;
+			} else if (currentLanguage === 'zh' && (text.includes('files') || text.includes('notes'))) {
+				needsUpdate = true;
+			}
+		});
+
+		// Update only if we detected inconsistencies
+		if (needsUpdate) {
+			console.log('Language inconsistency detected, updating file displays');
+			this.updateFileExplorerDates();
+		}
 	}
 
 	addDateDisplayToFileTitle(fileTitle: HTMLElement, file: TFile) {
@@ -634,8 +684,8 @@ class NotesDatesPlugin extends Plugin {
 					)) {
 						setTimeout(() => {
 							this.addFileClickListeners();
-							this.updateFileExplorerDates();
-						}, 100);
+							this.applyCurrentLanguageImmediately();
+						}, 50); // Faster response with immediate language application
 					}
 				}
 			});
@@ -650,8 +700,11 @@ class NotesDatesPlugin extends Plugin {
 			});
 		}
 
-		// Also periodically check for new files
-		setInterval(() => this.addFileClickListeners(), 2000);
+		// Smart periodic sync to ensure language consistency
+		// This runs less frequently and only updates when needed
+		setInterval(() => {
+			this.ensureLanguageConsistency();
+		}, 5000); // Check every 5 seconds instead of 2 seconds
 	}
 
 	addFileClickListeners() {
@@ -723,10 +776,10 @@ class NotesDatesPlugin extends Plugin {
 				const modDate = new Date(file.stat.mtime);
 				console.log('Jumping to date:', modDate);
 
-				// Always switch to month view
+				// Always switch to month view (save but skip file display update)
 				const originalViewType = this.settings.calendarViewType;
 				this.settings.calendarViewType = 'month';
-				await this.saveSettings();
+				await this.saveSettings(true); // Skip file display update to prevent language switching issues
 
 				// Update the view switcher button
 				const controlsEl = (calendarView as any).controlsEl;
@@ -749,16 +802,19 @@ class NotesDatesPlugin extends Plugin {
 					calendarView.renderCalendar(new Date(modDate), null, monthYearEl, modDate);
 				}
 
-				// Jump notification removed - direct navigation without interruption
-			} else {
-				console.error('No calendar view found');
-			}
-		} catch (error) {
-			console.error('Error jumping to file date:', error);
-			const language = this.app?.plugins?.plugins?.['notes-calendar']?.settings?.language || 'zh';
-			const errorMsg = language === 'en' ? 'Error jumping to calendar' : '跳转到日历时出错';
-			new Notice(errorMsg, 2000);
+				// Apply current language settings immediately after jump to ensure consistency
+			// Use microtask to ensure this runs after all other operations
+			Promise.resolve().then(() => {
+				this.applyCurrentLanguageImmediately();
+			});
+		} else {
+			console.error('No calendar view found');
 		}
+	} catch (error) {
+		console.error('Error jumping to file date:', error);
+		const errorMsg = this.settings.language === 'en' ? 'Error jumping to calendar' : '跳转到日历时出错';
+		new Notice(errorMsg, 2000);
+	}
 	}
 }
 
@@ -1312,30 +1368,36 @@ class CalendarView extends ItemView {
 					e.preventDefault();
 					e.stopPropagation();
 
-					// For both year view and month view, jump to month view
-					const noteMonth = noteDate.getMonth();
-					const noteYear = noteDate.getFullYear();
-					const monthNames = getMonthNames(this.plugin.settings.language);
+					// Check current view type to determine action
+					if (this.plugin.settings.calendarViewType === 'year') {
+						// In year view, directly open the file
+						this.app.workspace.getLeaf().openFile(note);
+					} else {
+						// In month view, jump to the specific month
+						const noteMonth = noteDate.getMonth();
+						const noteYear = noteDate.getFullYear();
+						const monthNames = getMonthNames(this.plugin.settings.language);
 
-					// Switch to month view
-					this.plugin.settings.calendarViewType = 'month';
-					this.plugin.saveSettings();
+						// Switch to month view
+						this.plugin.settings.calendarViewType = 'month';
+						this.plugin.saveSettings();
 
-					// Update view switcher button
-					const viewSwitcherBtn = document.querySelector('.view-switcher-btn');
-					if (viewSwitcherBtn) {
-						viewSwitcherBtn.textContent = this.getViewSwitcherLabel();
-						viewSwitcherBtn.title = this.getViewSwitcherTooltip();
+						// Update view switcher button
+						const viewSwitcherBtn = document.querySelector('.view-switcher-btn');
+						if (viewSwitcherBtn) {
+							viewSwitcherBtn.textContent = this.getViewSwitcherLabel();
+							viewSwitcherBtn.title = this.getViewSwitcherTooltip();
+						}
+
+						// Get current date reference and re-render calendar for the specific month
+						const targetDate = new Date(noteYear, noteMonth, 1);
+						const monthYearEl = (this as any).monthYearEl;
+						if (monthYearEl) {
+							this.renderCalendar(targetDate, null, monthYearEl, targetDate);
+						}
+
+						// Jump notification removed - direct navigation without interruption
 					}
-
-					// Get current date reference and re-render calendar for the specific month
-					const targetDate = new Date(noteYear, noteMonth, 1);
-					const monthYearEl = (this as any).monthYearEl;
-					if (monthYearEl) {
-						this.renderCalendar(targetDate, null, monthYearEl, targetDate);
-					}
-
-					// Jump notification removed - direct navigation without interruption
 				};
 
 				// Note title
