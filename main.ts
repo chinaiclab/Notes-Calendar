@@ -205,7 +205,7 @@ class NotesDatesPlugin extends Plugin {
 		);
 
 		// Add ribbon icon for calendar
-		this.addRibbonIcon('calendar', 'Open Notes Calendar', () => {
+		this.addRibbonIcon('calendar-days', 'Open Notes Calendar', () => {
 			this.activateCalendarView();
 		});
 
@@ -835,7 +835,7 @@ class CalendarView extends ItemView {
 	}
 
 	getIcon() {
-		return "calendar";
+		return "calendar-days";
 	}
 
 	async onOpen() {
