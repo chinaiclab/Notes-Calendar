@@ -24,6 +24,91 @@ var __toModule = (module2) => {
 
 // main.ts
 var import_obsidian = __toModule(require("obsidian"));
+function getLocalizedText(key, language) {
+  var _a;
+  const texts = {
+    "january": { en: "January", zh: "\u4E00\u6708" },
+    "february": { en: "February", zh: "\u4E8C\u6708" },
+    "march": { en: "March", zh: "\u4E09\u6708" },
+    "april": { en: "April", zh: "\u56DB\u6708" },
+    "may": { en: "May", zh: "\u4E94\u6708" },
+    "june": { en: "June", zh: "\u516D\u6708" },
+    "july": { en: "July", zh: "\u4E03\u6708" },
+    "august": { en: "August", zh: "\u516B\u6708" },
+    "september": { en: "September", zh: "\u4E5D\u6708" },
+    "october": { en: "October", zh: "\u5341\u6708" },
+    "november": { en: "November", zh: "\u5341\u4E00\u6708" },
+    "december": { en: "December", zh: "\u5341\u4E8C\u6708" },
+    "files": { en: "files", zh: "\u6587\u4EF6" },
+    "notes": { en: "notes", zh: "\u7B14\u8BB0" },
+    "filesAndNotes": { en: "files, notes", zh: "\u6587\u4EF6\uFF0C\u7B14\u8BB0" },
+    "totalFiles": { en: "Total", zh: "\u603B\u8BA1" },
+    "filesTotal": { en: "files", zh: "\u4E2A\u6587\u4EF6" },
+    "notesTotal": { en: "notes", zh: "\u4E2A\u7B14\u8BB0" },
+    "includingSubdirectories": { en: "including subdirectories", zh: "\uFF08\u5305\u542B\u5B50\u76EE\u5F55\uFF09" },
+    "sunday": { en: "Sun", zh: "\u65E5" },
+    "monday": { en: "Mon", zh: "\u4E00" },
+    "tuesday": { en: "Tue", zh: "\u4E8C" },
+    "wednesday": { en: "Wed", zh: "\u4E09" },
+    "thursday": { en: "Thu", zh: "\u56DB" },
+    "friday": { en: "Fri", zh: "\u4E94" },
+    "saturday": { en: "Sat", zh: "\u516D" },
+    "notesCalendar": { en: "Notes Calendar", zh: "\u7B14\u8BB0\u65E5\u5386" },
+    "yearView": { en: "Year View", zh: "\u5E74\u89C6\u56FE" },
+    "monthView": { en: "Month View", zh: "\u6708\u89C6\u56FE" },
+    "locatedToFile": { en: "Located to file", zh: "\u5DF2\u5B9A\u4F4D\u5230\u6587\u4EF6" },
+    "jumpedToMonthView": { en: "Jumped to", zh: "\u5DF2\u8DF3\u8F6C\u5230" },
+    "monthViewAbbr": { en: "month view", zh: "\u6708\u89C6\u56FE" }
+  };
+  return ((_a = texts[key]) == null ? void 0 : _a[language]) || key;
+}
+function getMonthNames(language) {
+  return [
+    getLocalizedText("january", language),
+    getLocalizedText("february", language),
+    getLocalizedText("march", language),
+    getLocalizedText("april", language),
+    getLocalizedText("may", language),
+    getLocalizedText("june", language),
+    getLocalizedText("july", language),
+    getLocalizedText("august", language),
+    getLocalizedText("september", language),
+    getLocalizedText("october", language),
+    getLocalizedText("november", language),
+    getLocalizedText("december", language)
+  ];
+}
+function getWeekdayNames(language) {
+  return [
+    getLocalizedText("sunday", language),
+    getLocalizedText("monday", language),
+    getLocalizedText("tuesday", language),
+    getLocalizedText("wednesday", language),
+    getLocalizedText("thursday", language),
+    getLocalizedText("friday", language),
+    getLocalizedText("saturday", language)
+  ];
+}
+function formatFileCountText(totalFiles, totalNotes, language) {
+  const filesText = getLocalizedText("files", language);
+  const notesText = getLocalizedText("notes", language);
+  if (language === "en") {
+    return `(${totalFiles} ${filesText}, ${totalNotes} ${notesText})`;
+  } else {
+    return `\uFF08${totalFiles}${filesText}${totalNotes}${notesText}\uFF09`;
+  }
+}
+function formatFileCountTooltip(totalFiles, totalNotes, language) {
+  const totalText = getLocalizedText("totalFiles", language);
+  const filesText = getLocalizedText("filesTotal", language);
+  const notesText = getLocalizedText("notesTotal", language);
+  const includingText = getLocalizedText("includingSubdirectories", language);
+  if (language === "en") {
+    return `${totalText} ${totalFiles} ${filesText}, ${totalNotes} ${notesText} ${includingText}`;
+  } else {
+    return `${totalText} ${totalFiles}${filesText}\uFF0C\u5176\u4E2D ${totalNotes}${notesText}${includingText}`;
+  }
+}
 var DEFAULT_SETTINGS = {
   showCreationDate: true,
   showModificationDate: true,
@@ -246,8 +331,8 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
       if (stats.totalFiles > 0) {
         const countDisplay = document.createElement("span");
         countDisplay.className = "file-count";
-        countDisplay.textContent = `\uFF08${stats.totalFiles}\u6587\u4EF6${stats.totalNotes}\u7B14\u8BB0\uFF09`;
-        countDisplay.title = `\u603B\u8BA1 ${stats.totalFiles} \u4E2A\u6587\u4EF6\uFF0C\u5176\u4E2D ${stats.totalNotes} \u4E2A\u7B14\u8BB0\uFF08\u5305\u542B\u5B50\u76EE\u5F55\uFF09`;
+        countDisplay.textContent = formatFileCountText(stats.totalFiles, stats.totalNotes, this.settings.language);
+        countDisplay.title = formatFileCountTooltip(stats.totalFiles, stats.totalNotes, this.settings.language);
         const folderTitleContent = folderTitle.querySelector(".nav-folder-title-content") || folderTitle;
         folderTitleContent.appendChild(countDisplay);
       }
@@ -422,7 +507,7 @@ var CalendarView = class extends import_obsidian.ItemView {
   async onOpen() {
     const container = this.containerEl.children[1];
     container.empty();
-    container.createEl("h2", { text: "Notes Calendar" });
+    container.createEl("h2", { text: getLocalizedText("notesCalendar", this.plugin.settings.language) });
     const controlsEl = container.createDiv("calendar-controls");
     const prevBtn = controlsEl.createEl("button", {
       text: "\u2190",
@@ -510,27 +595,15 @@ var CalendarView = class extends import_obsidian.ItemView {
   renderMonthView(date, calendarEl, monthYearEl, highlightDate) {
     const year = date.getFullYear();
     const month = date.getMonth();
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December"
-    ];
+    const monthNames = getMonthNames(this.plugin.settings.language);
     monthYearEl.textContent = `${monthNames[month]} ${year}`;
     const firstDayOfWeek = this.plugin.settings.calendarFirstDayOfWeek;
+    const weekdayNames = getWeekdayNames(this.plugin.settings.language);
     let weekdays;
     if (firstDayOfWeek === 1) {
-      weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      weekdays = [weekdayNames[1], weekdayNames[2], weekdayNames[3], weekdayNames[4], weekdayNames[5], weekdayNames[6], weekdayNames[0]];
     } else {
-      weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      weekdays = [weekdayNames[0], weekdayNames[1], weekdayNames[2], weekdayNames[3], weekdayNames[4], weekdayNames[5], weekdayNames[6]];
     }
     const weekdayHeadersEl = calendarEl.createDiv("weekday-headers");
     weekdays.forEach((day) => {
@@ -690,20 +763,7 @@ var CalendarView = class extends import_obsidian.ItemView {
     const yearContainer = calendarEl.createDiv("year-view-timeline-container");
     const monthTimeline = yearContainer.createDiv("year-month-timeline");
     const monthTimelineContainer = monthTimeline.createDiv("year-month-timeline-container");
-    const monthNames = [
-      "\u4E00\u6708",
-      "\u4E8C\u6708",
-      "\u4E09\u6708",
-      "\u56DB\u6708",
-      "\u4E94\u6708",
-      "\u516D\u6708",
-      "\u4E03\u6708",
-      "\u516B\u6708",
-      "\u4E5D\u6708",
-      "\u5341\u6708",
-      "\u5341\u4E00\u6708",
-      "\u5341\u4E8C\u6708"
-    ];
+    const monthNames = getMonthNames(this.plugin.settings.language);
     const notes = this.plugin.app.vault.getMarkdownFiles();
     const notesByMonth = {};
     for (let i = 0; i < 12; i++) {
@@ -788,20 +848,7 @@ var CalendarView = class extends import_obsidian.ItemView {
           e.stopPropagation();
           const noteMonth = noteDate.getMonth();
           const noteYear = noteDate.getFullYear();
-          const monthNames2 = [
-            "\u4E00\u6708",
-            "\u4E8C\u6708",
-            "\u4E09\u6708",
-            "\u56DB\u6708",
-            "\u4E94\u6708",
-            "\u516D\u6708",
-            "\u4E03\u6708",
-            "\u516B\u6708",
-            "\u4E5D\u6708",
-            "\u5341\u6708",
-            "\u5341\u4E00\u6708",
-            "\u5341\u4E8C\u6708"
-          ];
+          const monthNames2 = getMonthNames(this.plugin.settings.language);
           this.plugin.settings.calendarViewType = "month";
           this.plugin.saveSettings();
           const viewSwitcherBtn = document.querySelector(".view-switcher-btn");
@@ -814,7 +861,9 @@ var CalendarView = class extends import_obsidian.ItemView {
           if (monthYearEl2) {
             this.renderCalendar(targetDate, null, monthYearEl2, targetDate);
           }
-          new import_obsidian.Notice(`\u5DF2\u8DF3\u8F6C\u5230 ${monthNames2[noteMonth]} ${noteYear} \u7684\u6708\u89C6\u56FE`, 2e3);
+          const jumpedToText = getLocalizedText("jumpedToMonthView", this.plugin.settings.language);
+          const monthViewText = getLocalizedText("monthViewAbbr", this.plugin.settings.language);
+          new import_obsidian.Notice(`${jumpedToText} ${monthNames2[noteMonth]} ${noteYear} ${monthViewText}`, 2e3);
         };
         const noteTitle = noteContent.createEl("div", {
           text: note.basename,
@@ -1113,8 +1162,18 @@ var NotesDatesSettingTab = class extends import_obsidian.PluginSettingTab {
       await this.plugin.saveSettings();
     }));
     new import_obsidian.Setting(containerEl).setName("Language").setDesc("Choose the interface language").addDropdown((dropdown) => dropdown.addOption("en", "English").addOption("zh", "\u4E2D\u6587").setValue(this.plugin.settings.language).onChange(async (value) => {
+      var _a;
       this.plugin.settings.language = value;
       await this.plugin.saveSettings();
+      const calendarView = (_a = this.plugin.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE)[0]) == null ? void 0 : _a.view;
+      if (calendarView) {
+        const monthYearEl = calendarView.monthYearEl;
+        if (monthYearEl) {
+          const currentDate = calendarView.currentDate || new Date();
+          calendarView.renderCalendar(currentDate, null, monthYearEl);
+        }
+      }
+      this.plugin.updateAllFilesDisplay();
     }));
   }
 };

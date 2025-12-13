@@ -21,6 +21,110 @@ interface NoteDatesSettings {
 	language: 'en' | 'zh';
 }
 
+// Localization helper function
+function getLocalizedText(key: string, language: 'en' | 'zh'): string {
+	const texts: { [key: string]: { [lang: string]: string } } = {
+		// Months
+		'january': { en: 'January', zh: '一月' },
+		'february': { en: 'February', zh: '二月' },
+		'march': { en: 'March', zh: '三月' },
+		'april': { en: 'April', zh: '四月' },
+		'may': { en: 'May', zh: '五月' },
+		'june': { en: 'June', zh: '六月' },
+		'july': { en: 'July', zh: '七月' },
+		'august': { en: 'August', zh: '八月' },
+		'september': { en: 'September', zh: '九月' },
+		'october': { en: 'October', zh: '十月' },
+		'november': { en: 'November', zh: '十一月' },
+		'december': { en: 'December', zh: '十二月' },
+
+		// File counts
+		'files': { en: 'files', zh: '文件' },
+		'notes': { en: 'notes', zh: '笔记' },
+		'filesAndNotes': { en: 'files, notes', zh: '文件，笔记' },
+		'totalFiles': { en: 'Total', zh: '总计' },
+		'filesTotal': { en: 'files', zh: '个文件' },
+		'notesTotal': { en: 'notes', zh: '个笔记' },
+		'includingSubdirectories': { en: 'including subdirectories', zh: '（包含子目录）' },
+
+		// Weekdays
+		'sunday': { en: 'Sun', zh: '日' },
+		'monday': { en: 'Mon', zh: '一' },
+		'tuesday': { en: 'Tue', zh: '二' },
+		'wednesday': { en: 'Wed', zh: '三' },
+		'thursday': { en: 'Thu', zh: '四' },
+		'friday': { en: 'Fri', zh: '五' },
+		'saturday': { en: 'Sat', zh: '六' },
+
+		// UI Text
+		'notesCalendar': { en: 'Notes Calendar', zh: '笔记日历' },
+		'yearView': { en: 'Year View', zh: '年视图' },
+		'monthView': { en: 'Month View', zh: '月视图' },
+		'locatedToFile': { en: 'Located to file', zh: '已定位到文件' },
+		'jumpedToMonthView': { en: 'Jumped to', zh: '已跳转到' },
+		'monthViewAbbr': { en: 'month view', zh: '月视图' }
+	};
+
+	return texts[key]?.[language] || key;
+}
+
+// Get localized month names
+function getMonthNames(language: 'en' | 'zh'): string[] {
+	return [
+		getLocalizedText('january', language),
+		getLocalizedText('february', language),
+		getLocalizedText('march', language),
+		getLocalizedText('april', language),
+		getLocalizedText('may', language),
+		getLocalizedText('june', language),
+		getLocalizedText('july', language),
+		getLocalizedText('august', language),
+		getLocalizedText('september', language),
+		getLocalizedText('october', language),
+		getLocalizedText('november', language),
+		getLocalizedText('december', language)
+	];
+}
+
+// Get localized weekday names
+function getWeekdayNames(language: 'en' | 'zh'): string[] {
+	return [
+		getLocalizedText('sunday', language),
+		getLocalizedText('monday', language),
+		getLocalizedText('tuesday', language),
+		getLocalizedText('wednesday', language),
+		getLocalizedText('thursday', language),
+		getLocalizedText('friday', language),
+		getLocalizedText('saturday', language)
+	];
+}
+
+// Format file count text with localization
+function formatFileCountText(totalFiles: number, totalNotes: number, language: 'en' | 'zh'): string {
+	const filesText = getLocalizedText('files', language);
+	const notesText = getLocalizedText('notes', language);
+
+	if (language === 'en') {
+		return `(${totalFiles} ${filesText}, ${totalNotes} ${notesText})`;
+	} else {
+		return `（${totalFiles}${filesText}${totalNotes}${notesText}）`;
+	}
+}
+
+// Format file count tooltip with localization
+function formatFileCountTooltip(totalFiles: number, totalNotes: number, language: 'en' | 'zh'): string {
+	const totalText = getLocalizedText('totalFiles', language);
+	const filesText = getLocalizedText('filesTotal', language);
+	const notesText = getLocalizedText('notesTotal', language);
+	const includingText = getLocalizedText('includingSubdirectories', language);
+
+	if (language === 'en') {
+		return `${totalText} ${totalFiles} ${filesText}, ${totalNotes} ${notesText} ${includingText}`;
+	} else {
+		return `${totalText} ${totalFiles}${filesText}，其中 ${totalNotes}${notesText}${includingText}`;
+	}
+}
+
 const DEFAULT_SETTINGS: NoteDatesSettings = {
 	showCreationDate: true,
 	showModificationDate: true,
@@ -336,8 +440,8 @@ class NotesDatesPlugin extends Plugin {
 			if (stats.totalFiles > 0) {
 				const countDisplay = document.createElement('span');
 				countDisplay.className = 'file-count';
-				countDisplay.textContent = `（${stats.totalFiles}文件${stats.totalNotes}笔记）`;
-				countDisplay.title = `总计 ${stats.totalFiles} 个文件，其中 ${stats.totalNotes} 个笔记（包含子目录）`;
+				countDisplay.textContent = formatFileCountText(stats.totalFiles, stats.totalNotes, this.settings.language);
+				countDisplay.title = formatFileCountTooltip(stats.totalFiles, stats.totalNotes, this.settings.language);
 
 				// 添加到文件夹标题内容的末尾
 				const folderTitleContent = folderTitle.querySelector('.nav-folder-title-content') || folderTitle;
@@ -587,7 +691,7 @@ class CalendarView extends ItemView {
 	async onOpen() {
 		const container = this.containerEl.children[1];
 		container.empty();
-		container.createEl("h2", { text: "Notes Calendar" });
+		container.createEl("h2", { text: getLocalizedText('notesCalendar', this.plugin.settings.language) });
 
 		// Create calendar controls
 		const controlsEl = container.createDiv("calendar-controls");
@@ -721,20 +825,20 @@ class CalendarView extends ItemView {
 		const year = date.getFullYear();
 		const month = date.getMonth();
 
-		// Update month/year display
-		const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-			'July', 'August', 'September', 'October', 'November', 'December'];
+		// Update month/year display with localization
+		const monthNames = getMonthNames(this.plugin.settings.language);
 		monthYearEl.textContent = `${monthNames[month]} ${year}`;
 
 		// Create weekday headers for month view (respect user's preference for first day of week)
 		const firstDayOfWeek = this.plugin.settings.calendarFirstDayOfWeek;
+		const weekdayNames = getWeekdayNames(this.plugin.settings.language);
 		let weekdays;
 		if (firstDayOfWeek === 1) {
 			// Monday first
-			weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+			weekdays = [weekdayNames[1], weekdayNames[2], weekdayNames[3], weekdayNames[4], weekdayNames[5], weekdayNames[6], weekdayNames[0]];
 		} else {
 			// Sunday first (default)
-			weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+			weekdays = [weekdayNames[0], weekdayNames[1], weekdayNames[2], weekdayNames[3], weekdayNames[4], weekdayNames[5], weekdayNames[6]];
 		}
 
 		const weekdayHeadersEl = calendarEl.createDiv("weekday-headers");
@@ -965,8 +1069,7 @@ class CalendarView extends ItemView {
 		// Create month timeline navigation
 		const monthTimeline = yearContainer.createDiv("year-month-timeline");
 		const monthTimelineContainer = monthTimeline.createDiv("year-month-timeline-container");
-		const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月',
-			'七月', '八月', '九月', '十月', '十一月', '十二月'];
+		const monthNames = getMonthNames(this.plugin.settings.language);
 
 		// Get all notes for this year and group by month
 		const notes = this.plugin.app.vault.getMarkdownFiles();
@@ -1098,8 +1201,7 @@ class CalendarView extends ItemView {
 					// For both year view and month view, jump to month view
 					const noteMonth = noteDate.getMonth();
 					const noteYear = noteDate.getFullYear();
-					const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月',
-						'七月', '八月', '九月', '十月', '十一月', '十二月'];
+					const monthNames = getMonthNames(this.plugin.settings.language);
 
 					// Switch to month view
 					this.plugin.settings.calendarViewType = 'month';
@@ -1120,7 +1222,9 @@ class CalendarView extends ItemView {
 					}
 
 					// Show notification
-					new Notice(`已跳转到 ${monthNames[noteMonth]} ${noteYear} 的月视图`, 2000);
+					const jumpedToText = getLocalizedText('jumpedToMonthView', this.plugin.settings.language);
+					const monthViewText = getLocalizedText('monthViewAbbr', this.plugin.settings.language);
+					new Notice(`${jumpedToText} ${monthNames[noteMonth]} ${noteYear} ${monthViewText}`, 2000);
 				};
 
 				// Note title
@@ -1600,6 +1704,19 @@ class NotesDatesSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.language = value as 'en' | 'zh';
 					await this.plugin.saveSettings();
+
+					// Re-render the calendar view with new language
+					const calendarView = this.plugin.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE)[0]?.view;
+					if (calendarView) {
+						const monthYearEl = (calendarView as any).monthYearEl;
+						if (monthYearEl) {
+							const currentDate = (calendarView as any).currentDate || new Date();
+							calendarView.renderCalendar(currentDate, null, monthYearEl);
+						}
+					}
+
+					// Update file explorer counts with new language
+					this.plugin.updateAllFilesDisplay();
 				}));
 
 			}
