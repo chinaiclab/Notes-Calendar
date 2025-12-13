@@ -103,24 +103,16 @@ function getWeekdayNames(language) {
   ];
 }
 function formatFileCountText(totalFiles, totalNotes, language) {
-  const filesText = getLocalizedText("files", language);
-  const notesText = getLocalizedText("notes", language);
-  if (language === "en") {
-    return `(${totalFiles} ${filesText}, ${totalNotes} ${notesText})`;
-  } else {
-    return `\uFF08${totalFiles}${filesText}${totalNotes}${notesText}\uFF09`;
-  }
+  const filesText = "files";
+  const notesText = "notes";
+  return `(${totalFiles} ${filesText}, ${totalNotes} ${notesText})`;
 }
 function formatFileCountTooltip(totalFiles, totalNotes, language) {
-  const totalText = getLocalizedText("totalFiles", language);
-  const filesText = getLocalizedText("filesTotal", language);
-  const notesText = getLocalizedText("notesTotal", language);
-  const includingText = getLocalizedText("includingSubdirectories", language);
-  if (language === "en") {
-    return `${totalText} ${totalFiles} ${filesText}, ${totalNotes} ${notesText} ${includingText}`;
-  } else {
-    return `${totalText} ${totalFiles}${filesText}\uFF0C\u5176\u4E2D ${totalNotes}${notesText}${includingText}`;
-  }
+  const totalText = "Total";
+  const filesText = "files";
+  const notesText = "notes";
+  const includingText = "including subdirectories";
+  return `${totalText} ${totalFiles} ${filesText}, ${totalNotes} ${notesText} ${includingText}`;
 }
 var DEFAULT_SETTINGS = {
   showCreationDate: true,
@@ -168,7 +160,7 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
       }
     });
     this.registerView(CALENDAR_VIEW_TYPE, (leaf) => new CalendarView(leaf, this));
-    this.addRibbonIcon("calendar", "Open Notes Calendar", () => {
+    this.addRibbonIcon("calendar-days", "Open Notes Calendar", () => {
       this.activateCalendarView();
     });
     this.updateAllFilesDisplay();
@@ -241,6 +233,20 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
 				padding: 2px 4px;
 				min-width: 28px;
 				height: 28px;
+			}
+
+			.year-view-file-highlight {
+				background-color: var(--interactive-accent) !important;
+				color: var(--text-on-accent) !important;
+				border-radius: 4px !important;
+				box-shadow: 0 0 10px rgba(var(--interactive-accent-rgb), 0.5) !important;
+				animation: year-view-highlight-pulse 2s ease-in-out !important;
+			}
+
+			@keyframes year-view-highlight-pulse {
+				0% { transform: scale(1); }
+				50% { transform: scale(1.02); }
+				100% { transform: scale(1); }
 			}
 		`;
     document.head.appendChild(style);
@@ -364,7 +370,7 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const fileDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const localeString = this.settings.language === "en" ? "en-US" : "zh-CN";
+      const localeString = "en-US";
       if (fileDate.getTime() === today.getTime()) {
         return date.toLocaleTimeString(localeString, {
           hour: "2-digit",
@@ -375,8 +381,7 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       if (fileDate.getTime() === yesterday.getTime()) {
-        const yesterdayText = this.settings.language === "en" ? "Yesterday" : "\u6628\u5929";
-        return yesterdayText + " " + date.toLocaleTimeString(localeString, {
+        return "Yesterday " + date.toLocaleTimeString(localeString, {
           hour: "2-digit",
           minute: "2-digit",
           hour12: false
@@ -555,7 +560,12 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
       const clickHandler = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Calendar jump triggered for file:", file.path);
+        console.log("File click triggered for file:", file.path);
+        if (this.settings.calendarViewType === "year") {
+          this.scrollToFileInYearView(file);
+          console.log("Year view: scrolling to file in year timeline");
+          return;
+        }
         this.jumpCalendarToFileDate(file);
       };
       fileTitleEl.addEventListener("click", clickHandler);
@@ -616,6 +626,40 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
       new import_obsidian.Notice(errorMsg, 2e3);
     }
   }
+  scrollToFileInYearView(file) {
+    const fileElements = document.querySelectorAll(".timeline-note-content");
+    let targetElement = null;
+    fileElements.forEach((element) => {
+      var _a;
+      const fileEl = element;
+      const text = ((_a = fileEl.textContent) == null ? void 0 : _a.trim()) || "";
+      const fileNameWithoutExt = file.basename;
+      if (text.toLowerCase().includes(fileNameWithoutExt.toLowerCase())) {
+        targetElement = fileEl;
+      }
+    });
+    if (targetElement) {
+      const targetEl = targetElement;
+      this.clearYearViewHighlights();
+      targetEl.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+      targetEl.classList.add("year-view-file-highlight");
+      console.log("Scrolled to and highlighted file in year view:", file.path);
+      setTimeout(() => {
+        targetEl.classList.remove("year-view-file-highlight");
+      }, 3e3);
+    } else {
+      console.log("File element not found in year view timeline:", file.path);
+    }
+  }
+  clearYearViewHighlights() {
+    const highlightedElements = document.querySelectorAll(".year-view-file-highlight");
+    highlightedElements.forEach((element) => {
+      element.classList.remove("year-view-file-highlight");
+    });
+  }
 };
 var CalendarView = class extends import_obsidian.ItemView {
   constructor(leaf, plugin) {
@@ -629,7 +673,7 @@ var CalendarView = class extends import_obsidian.ItemView {
     return getLocalizedText("notesCalendar", this.plugin.settings.language);
   }
   getIcon() {
-    return "calendar";
+    return "calendar-days";
   }
   async onOpen() {
     const container = this.containerEl.children[1];

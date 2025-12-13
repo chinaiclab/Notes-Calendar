@@ -116,28 +116,22 @@ function getWeekdayNames(language: 'en' | 'zh'): string[] {
 
 // Format file count text with localization
 function formatFileCountText(totalFiles: number, totalNotes: number, language: 'en' | 'zh'): string {
-	const filesText = getLocalizedText('files', language);
-	const notesText = getLocalizedText('notes', language);
+	// Fixed to always use English format
+	const filesText = 'files';
+	const notesText = 'notes';
 
-	if (language === 'en') {
-		return `(${totalFiles} ${filesText}, ${totalNotes} ${notesText})`;
-	} else {
-		return `（${totalFiles}${filesText}${totalNotes}${notesText}）`;
-	}
+	return `(${totalFiles} ${filesText}, ${totalNotes} ${notesText})`;
 }
 
 // Format file count tooltip with localization
 function formatFileCountTooltip(totalFiles: number, totalNotes: number, language: 'en' | 'zh'): string {
-	const totalText = getLocalizedText('totalFiles', language);
-	const filesText = getLocalizedText('filesTotal', language);
-	const notesText = getLocalizedText('notesTotal', language);
-	const includingText = getLocalizedText('includingSubdirectories', language);
+	// Fixed to always use English format
+	const totalText = 'Total';
+	const filesText = 'files';
+	const notesText = 'notes';
+	const includingText = 'including subdirectories';
 
-	if (language === 'en') {
-		return `${totalText} ${totalFiles} ${filesText}, ${totalNotes} ${notesText} ${includingText}`;
-	} else {
-		return `${totalText} ${totalFiles}${filesText}，其中 ${totalNotes}${notesText}${includingText}`;
-	}
+	return `${totalText} ${totalFiles} ${filesText}, ${totalNotes} ${notesText} ${includingText}`;
 }
 
 const DEFAULT_SETTINGS: NoteDatesSettings = {
@@ -306,6 +300,20 @@ class NotesDatesPlugin extends Plugin {
 				margin-left: -3px !important;
 				box-shadow: 0 0 8px rgba(var(--interactive-accent-rgb), 0.3) !important;
 				transition: all 0.2s ease;
+			}
+
+			.year-view-file-highlight {
+				background-color: var(--interactive-accent) !important;
+				color: var(--text-on-accent) !important;
+				border-radius: 4px !important;
+				box-shadow: 0 0 10px rgba(var(--interactive-accent-rgb), 0.5) !important;
+				animation: year-view-highlight-pulse 2s ease-in-out !important;
+			}
+
+			@keyframes year-view-highlight-pulse {
+				0% { transform: scale(1); }
+				50% { transform: scale(1.02); }
+				100% { transform: scale(1); }
 			}
 		`;
 		document.head.appendChild(style);
@@ -484,9 +492,10 @@ class NotesDatesPlugin extends Plugin {
 			const now = new Date();
 			const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 			const fileDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-			const localeString = this.settings.language === 'en' ? 'en-US' : 'zh-CN';
+			// Fixed to always use English format
+			const localeString = 'en-US';
 
-			// 如果是今天，只显示时间（24小时制）
+			// If it's today, show time only (24-hour format)
 			if (fileDate.getTime() === today.getTime()) {
 				return date.toLocaleTimeString(localeString, {
 					hour: '2-digit',
@@ -495,19 +504,18 @@ class NotesDatesPlugin extends Plugin {
 				});
 			}
 
-			// 如果是昨天，显示"昨天"或"Yesterday" + 时间
+			// If it's yesterday, show "Yesterday" + time
 			const yesterday = new Date(today);
 			yesterday.setDate(yesterday.getDate() - 1);
 			if (fileDate.getTime() === yesterday.getTime()) {
-				const yesterdayText = this.settings.language === 'en' ? 'Yesterday' : '昨天';
-				return yesterdayText + ' ' + date.toLocaleTimeString(localeString, {
+				return 'Yesterday ' + date.toLocaleTimeString(localeString, {
 					hour: '2-digit',
 					minute: '2-digit',
 					hour12: false
 				});
 			}
 
-			// 其他情况显示月日
+			// Otherwise show month and day
 			return date.toLocaleDateString(localeString, {
 				month: 'short',
 				day: 'numeric'
@@ -745,13 +753,21 @@ class NotesDatesPlugin extends Plugin {
 			// Mark that we've added a listener
 			fileTitleEl.setAttribute('data-calendar-listener', 'true');
 
-			// Add click listener for direct calendar jump
+			// Add click listener for file interaction based on current calendar view
 			const clickHandler = (e: MouseEvent) => {
 				e.preventDefault();
 				e.stopPropagation();
-				console.log('Calendar jump triggered for file:', file.path); // Debug log
+				console.log('File click triggered for file:', file.path); // Debug log
 
-				// Left click always jumps to month view
+				// Check current calendar view type using plugin settings directly
+				if (this.settings.calendarViewType === 'year') {
+					// In year view: scroll to the file within the year view's month timeline
+					this.scrollToFileInYearView(file);
+					console.log('Year view: scrolling to file in year timeline');
+					return;
+				}
+
+				// In month view or other views: jump to file's date
 				this.jumpCalendarToFileDate(file);
 			};
 
@@ -835,6 +851,56 @@ class NotesDatesPlugin extends Plugin {
 		const errorMsg = this.settings.language === 'en' ? 'Error jumping to calendar' : '跳转到日历时出错';
 		new Notice(errorMsg, 2000);
 	}
+	}
+
+	scrollToFileInYearView(file: TFile) {
+		// Find all file elements in the year view's month timelines
+		const fileElements = document.querySelectorAll('.timeline-note-content');
+		let targetElement: Element | null = null;
+
+		fileElements.forEach((element: Element) => {
+			const fileEl = element as HTMLElement;
+			// Check if this element represents our target file
+			const text = fileEl.textContent?.trim() || '';
+			const fileNameWithoutExt = file.basename; // Get filename without .md extension
+
+			// Match by filename (case insensitive)
+			if (text.toLowerCase().includes(fileNameWithoutExt.toLowerCase())) {
+				targetElement = fileEl;
+			}
+		});
+
+		if (targetElement) {
+			const targetEl = targetElement as HTMLElement;
+
+			// Clear any existing highlights
+			this.clearYearViewHighlights();
+
+			// Scroll the element into view within the year view
+			targetEl.scrollIntoView({
+				behavior: 'smooth',
+				block: 'center'
+			});
+
+			// Add highlight class
+			targetEl.classList.add('year-view-file-highlight');
+
+			console.log('Scrolled to and highlighted file in year view:', file.path);
+
+			// Remove highlight after 3 seconds
+			setTimeout(() => {
+				targetEl.classList.remove('year-view-file-highlight');
+			}, 3000);
+		} else {
+			console.log('File element not found in year view timeline:', file.path);
+		}
+	}
+
+	clearYearViewHighlights() {
+		const highlightedElements = document.querySelectorAll('.year-view-file-highlight');
+		highlightedElements.forEach((element: Element) => {
+			element.classList.remove('year-view-file-highlight');
+		});
 	}
 }
 
