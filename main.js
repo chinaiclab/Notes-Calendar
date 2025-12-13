@@ -275,12 +275,17 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
 				flex-direction: column;
 				height: 100%;
 				max-height: 100%;
+				margin-top: 8px; /* Add spacing from controls */
 			}
 
 			.year-month-timeline {
 				position: sticky;
 <<<<<<< HEAD
+<<<<<<< HEAD
 				top: 90px; /* Account for h2 (~44px) + controls (~40px) + margin */
+=======
+				top: 60px; /* Account for h2 (~44px) + controls (~16px margin) - closer to buttons */
+>>>>>>> 325c412 (Fix year view layout issues and improve timeline display)
 				z-index: 15;
 =======
 				top: 88px; /* Position below controls (40 + 8 + 40 = 88px) */
@@ -289,6 +294,7 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
 				background-color: var(--background-primary);
 				border-bottom: 1px solid var(--background-modifier-border);
 				padding: 8px 0;
+				margin-top: 8px;
 				flex-shrink: 0;
 			}
 
@@ -347,11 +353,110 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
 				overflow-y: auto;
 <<<<<<< HEAD
 				padding: 12px 0;
+<<<<<<< HEAD
 				max-height: calc(100vh - 250px); /* Adjust for h2 + controls + month timeline */
 =======
 				padding: 8px 16px 16px 16px; /* More padding to prevent cutoff */
 				/* Remove max-height to use flex container constraints */
 >>>>>>> 0b03df2 (Fix year view layout and separate month navigation from content control)
+=======
+				max-height: calc(100vh - 200px); /* Adjust for h2 + controls + month timeline */
+			}
+
+			/* Timeline item layout for proper date/time display */
+			.timeline-item {
+				display: flex;
+				align-items: flex-start;
+				margin-bottom: 16px;
+				gap: 16px;
+				padding-left: 24px; /* Increase padding to move timeline more to the right */
+			}
+
+			.timeline-datetime {
+				flex: 0 0 140px; /* Increase width for date/time display */
+				min-width: 140px;
+				text-align: left;
+				padding-right: 16px; /* Add more padding on the right */
+				padding-left: 8px; /* Add some padding on the left */
+				word-wrap: break-word;
+				overflow: visible;
+				font-size: 11px;
+				line-height: 1.3;
+				background-color: var(--background-primary); /* Add background to prevent overlap */
+				border-radius: 4px;
+				margin-left: 8px; /* Additional margin to push content right */
+			}
+
+			.timeline-date {
+				font-weight: 600;
+				color: var(--text-normal);
+				margin-bottom: 2px;
+			}
+
+			.timeline-time {
+				font-weight: 400;
+				color: var(--text-muted);
+				font-size: 10px;
+			}
+
+			.timeline-weekday {
+				font-weight: 500;
+				color: var(--text-accent);
+				font-size: 10px;
+				margin: 1px 0;
+			}
+
+			.timeline-note-content {
+				flex: 1;
+				min-width: 0;
+				padding: 8px 12px;
+				background-color: var(--background-secondary);
+				border-radius: 6px;
+				border-left: 3px solid transparent;
+				transition: all 0.2s ease;
+			}
+
+			.timeline-note-content:hover {
+				background-color: var(--background-modifier-hover);
+				border-left-color: var(--interactive-accent);
+			}
+
+			.timeline-note-title {
+				font-weight: 600;
+				color: var(--text-normal);
+				margin-bottom: 4px;
+				font-size: 14px;
+				line-height: 1.3;
+			}
+
+			.timeline-note-path {
+				font-size: 11px;
+				color: var(--text-muted);
+				margin-bottom: 6px;
+				opacity: 0.8;
+			}
+
+			.timeline-dot {
+				flex: 0 0 8px;
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background-color: var(--interactive-accent);
+				margin-top: 8px;
+				position: relative;
+			}
+
+			.timeline-dot::before {
+				content: '';
+				position: absolute;
+				top: -4px;
+				left: -4px;
+				right: -4px;
+				bottom: -4px;
+				border: 2px solid var(--interactive-accent);
+				border-radius: 50%;
+				opacity: 0.3;
+>>>>>>> 325c412 (Fix year view layout issues and improve timeline display)
 			}
 
 			/* Ensure calendar container has proper height constraints */
