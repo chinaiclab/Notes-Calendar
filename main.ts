@@ -696,14 +696,16 @@ class CalendarView extends ItemView {
 		// Create calendar controls
 		const controlsEl = container.createDiv("calendar-controls");
 
+		// Previous button with icon
 		const prevBtn = controlsEl.createEl("button", {
-			text: "←",
-			title: "上一个时间段"
+			text: "◀",
+			title: this.plugin.settings.language === 'en' ? 'Previous period' : '上一个时间段'
 		});
 		const monthYearEl = controlsEl.createEl("span", { cls: "month-year-display" });
+		// Next button with icon
 		const nextBtn = controlsEl.createEl("button", {
-			text: "→",
-			title: "下一个时间段"
+			text: "▶",
+			title: this.plugin.settings.language === 'en' ? 'Next period' : '下一个时间段'
 		});
 
 		// Add new note button
@@ -1118,9 +1120,11 @@ class CalendarView extends ItemView {
 				monthItem.addClass("has-notes");
 			}
 
-			// Create month label
+			// Create month label with localization
 			const monthLabel = monthItem.createEl("div", {
-				text: `${monthIndex + 1}月`,
+				text: this.plugin.settings.language === 'en' ?
+					monthNames[monthIndex].substring(0, 3) : // Jan, Feb, Mar...
+					`${monthIndex + 1}月`,
 				cls: "year-month-timeline-month"
 			});
 
@@ -1159,14 +1163,24 @@ class CalendarView extends ItemView {
 			const monthNotes = notesByMonth[monthIndex];
 			totalNotes += monthNotes.length;
 
-			if (monthNotes.length === 0) return; // Skip empty months
-
-			// Create month section
+			// Create month section for all months (including empty ones)
 			const monthSection = timeline.createDiv("year-month-header");
 			monthSection.id = `month-${monthIndex}`;
 
+			// Create localized month title
+			let monthTitleText: string;
+			if (this.plugin.settings.language === 'en') {
+				monthTitleText = monthNotes.length > 0 ?
+					`${monthName} (${monthNotes.length} notes)` :
+					`${monthName} (No notes)`;
+			} else {
+				monthTitleText = monthNotes.length > 0 ?
+					`${monthName} (${monthNotes.length}个笔记)` :
+					`${monthName} (无笔记)`;
+			}
+
 			const monthTitle = monthSection.createEl("h3", {
-				text: `${monthName} (${monthNotes.length})`
+				text: monthTitleText
 			});
 
 			// Add notes for this month
@@ -1717,6 +1731,22 @@ class NotesDatesSettingTab extends PluginSettingTab {
 
 					// Update file explorer counts with new language
 					this.plugin.updateAllFilesDisplay();
+
+					// Update button tooltips with new language
+					const existingCalendarView = this.plugin.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE)[0]?.view;
+					if (existingCalendarView) {
+						const controlsEl = (existingCalendarView as any).controlsEl;
+						if (controlsEl) {
+							const prevBtn = controlsEl.querySelector('button');
+							const nextBtn = controlsEl.querySelector('button:nth-of-type(2)');
+							if (prevBtn) {
+								prevBtn.title = this.plugin.settings.language === 'en' ? 'Previous period' : '上一个时间段';
+							}
+							if (nextBtn) {
+								nextBtn.title = this.plugin.settings.language === 'en' ? 'Next period' : '下一个时间段';
+							}
+						}
+					}
 				}));
 
 			}

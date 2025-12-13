@@ -510,13 +510,13 @@ var CalendarView = class extends import_obsidian.ItemView {
     container.createEl("h2", { text: getLocalizedText("notesCalendar", this.plugin.settings.language) });
     const controlsEl = container.createDiv("calendar-controls");
     const prevBtn = controlsEl.createEl("button", {
-      text: "\u2190",
-      title: "\u4E0A\u4E00\u4E2A\u65F6\u95F4\u6BB5"
+      text: "\u25C0",
+      title: this.plugin.settings.language === "en" ? "Previous period" : "\u4E0A\u4E00\u4E2A\u65F6\u95F4\u6BB5"
     });
     const monthYearEl = controlsEl.createEl("span", { cls: "month-year-display" });
     const nextBtn = controlsEl.createEl("button", {
-      text: "\u2192",
-      title: "\u4E0B\u4E00\u4E2A\u65F6\u95F4\u6BB5"
+      text: "\u25B6",
+      title: this.plugin.settings.language === "en" ? "Next period" : "\u4E0B\u4E00\u4E2A\u65F6\u95F4\u6BB5"
     });
     const newNoteBtn = controlsEl.createEl("button", {
       text: "+",
@@ -797,7 +797,7 @@ var CalendarView = class extends import_obsidian.ItemView {
         monthItem.addClass("has-notes");
       }
       const monthLabel = monthItem.createEl("div", {
-        text: `${monthIndex + 1}\u6708`,
+        text: this.plugin.settings.language === "en" ? monthNames[monthIndex].substring(0, 3) : `${monthIndex + 1}\u6708`,
         cls: "year-month-timeline-month"
       });
       const noteCount = monthItem.createEl("div", {
@@ -821,12 +821,16 @@ var CalendarView = class extends import_obsidian.ItemView {
     monthNames.forEach((monthName, monthIndex) => {
       const monthNotes = notesByMonth[monthIndex];
       totalNotes += monthNotes.length;
-      if (monthNotes.length === 0)
-        return;
       const monthSection = timeline.createDiv("year-month-header");
       monthSection.id = `month-${monthIndex}`;
+      let monthTitleText;
+      if (this.plugin.settings.language === "en") {
+        monthTitleText = monthNotes.length > 0 ? `${monthName} (${monthNotes.length} notes)` : `${monthName} (No notes)`;
+      } else {
+        monthTitleText = monthNotes.length > 0 ? `${monthName} (${monthNotes.length}\u4E2A\u7B14\u8BB0)` : `${monthName} (\u65E0\u7B14\u8BB0)`;
+      }
       const monthTitle = monthSection.createEl("h3", {
-        text: `${monthName} (${monthNotes.length})`
+        text: monthTitleText
       });
       monthNotes.forEach(({ note, noteDate }) => {
         const timelineItem = timeline.createDiv("timeline-item");
@@ -1162,7 +1166,7 @@ var NotesDatesSettingTab = class extends import_obsidian.PluginSettingTab {
       await this.plugin.saveSettings();
     }));
     new import_obsidian.Setting(containerEl).setName("Language").setDesc("Choose the interface language").addDropdown((dropdown) => dropdown.addOption("en", "English").addOption("zh", "\u4E2D\u6587").setValue(this.plugin.settings.language).onChange(async (value) => {
-      var _a;
+      var _a, _b;
       this.plugin.settings.language = value;
       await this.plugin.saveSettings();
       const calendarView = (_a = this.plugin.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE)[0]) == null ? void 0 : _a.view;
@@ -1174,6 +1178,20 @@ var NotesDatesSettingTab = class extends import_obsidian.PluginSettingTab {
         }
       }
       this.plugin.updateAllFilesDisplay();
+      const existingCalendarView = (_b = this.plugin.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE)[0]) == null ? void 0 : _b.view;
+      if (existingCalendarView) {
+        const controlsEl = existingCalendarView.controlsEl;
+        if (controlsEl) {
+          const prevBtn = controlsEl.querySelector("button");
+          const nextBtn = controlsEl.querySelector("button:nth-of-type(2)");
+          if (prevBtn) {
+            prevBtn.title = this.plugin.settings.language === "en" ? "Previous period" : "\u4E0A\u4E00\u4E2A\u65F6\u95F4\u6BB5";
+          }
+          if (nextBtn) {
+            nextBtn.title = this.plugin.settings.language === "en" ? "Next period" : "\u4E0B\u4E00\u4E2A\u65F6\u95F4\u6BB5";
+          }
+        }
+      }
     }));
   }
 };
