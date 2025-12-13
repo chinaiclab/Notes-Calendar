@@ -62,7 +62,12 @@ function getLocalizedText(key: string, language: 'en' | 'zh'): string {
 		'monthView': { en: 'Month View', zh: '月视图' },
 		'locatedToFile': { en: 'Located to file', zh: '已定位到文件' },
 		'jumpedToMonthView': { en: 'Jumped to', zh: '已跳转到' },
-		'monthViewAbbr': { en: 'month view', zh: '月视图' }
+		'monthViewAbbr': { en: 'month view', zh: '月视图' },
+		'switchView': { en: 'Switch view', zh: '切换视图' },
+		'currentView': { en: 'Current', zh: '当前' },
+		'yearToMonth': { en: '📅', zh: '📅' },
+		'monthToYear': { en: '📆', zh: '📆' },
+		'switchViewTooltip': { en: 'Click to switch view (Current: {current})', zh: '点击切换视图 (当前: {current})' }
 	};
 
 	return texts[key]?.[language] || key;
@@ -645,7 +650,9 @@ class NotesDatesPlugin extends Plugin {
 					if (viewSwitcherBtn) {
 						if (typeof (calendarView as any).getViewSwitcherLabel === 'function') {
 							viewSwitcherBtn.textContent = (calendarView as any).getViewSwitcherLabel();
-							viewSwitcherBtn.title = `点击切换视图 (当前: ${(calendarView as any).getViewTypeLabel()})`;
+							if (typeof (calendarView as any).getViewSwitcherTooltip === 'function') {
+								viewSwitcherBtn.title = (calendarView as any).getViewSwitcherTooltip();
+							}
 						}
 					}
 				}
@@ -720,7 +727,7 @@ class CalendarView extends ItemView {
 
 		const viewSwitcherBtn = viewSelectorEl.createEl("button", {
 			text: this.getViewSwitcherLabel(),
-			title: `点击切换视图 (当前: ${this.getViewTypeLabel()})`,
+			title: this.getViewSwitcherTooltip(),
 			cls: "view-switcher-btn"
 		});
 
@@ -744,7 +751,7 @@ class CalendarView extends ItemView {
 
 			// Update button label
 			viewSwitcherBtn.textContent = this.getViewSwitcherLabel();
-			viewSwitcherBtn.title = `点击切换视图 (当前: ${this.getViewTypeLabel()})`;
+			viewSwitcherBtn.title = this.getViewSwitcherTooltip();
 
 			// Get current date reference and re-render
 			const currentRef = (this as any).currentDate || new Date();
@@ -1227,7 +1234,7 @@ class CalendarView extends ItemView {
 					const viewSwitcherBtn = document.querySelector('.view-switcher-btn');
 					if (viewSwitcherBtn) {
 						viewSwitcherBtn.textContent = this.getViewSwitcherLabel();
-						viewSwitcherBtn.title = `点击切换视图 (当前: ${this.getViewTypeLabel()})`;
+						viewSwitcherBtn.title = this.getViewSwitcherTooltip();
 					}
 
 					// Get current date reference and re-render calendar for the specific month
@@ -1353,11 +1360,11 @@ class CalendarView extends ItemView {
 		const currentType = this.plugin.settings.calendarViewType;
 		switch (currentType) {
 			case 'year':
-				return '年 ➜ 月';
+				return getLocalizedText('yearToMonth', this.plugin.settings.language);
 			case 'month':
-				return '月 ➜ 年';
+				return getLocalizedText('monthToYear', this.plugin.settings.language);
 			default:
-				return '年 ➜ 月';
+				return getLocalizedText('yearToMonth', this.plugin.settings.language);
 		}
 	}
 
@@ -1365,12 +1372,18 @@ class CalendarView extends ItemView {
 		const currentType = this.plugin.settings.calendarViewType;
 		switch (currentType) {
 			case 'year':
-				return '年视图';
+				return getLocalizedText('yearView', this.plugin.settings.language);
 			case 'month':
-				return '月视图';
+				return getLocalizedText('monthView', this.plugin.settings.language);
 			default:
-				return '年视图';
+				return getLocalizedText('yearView', this.plugin.settings.language);
 		}
+	}
+
+	getViewSwitcherTooltip(): string {
+		const currentType = this.getViewTypeLabel();
+		const tooltipTemplate = getLocalizedText('switchViewTooltip', this.plugin.settings.language);
+		return tooltipTemplate.replace('{current}', currentType);
 	}
 
 	async onClose() {
@@ -1510,11 +1523,12 @@ class DateNotesModal extends Modal {
 
 			dateTimeIndicator.innerHTML = `
 				<div class="timeline-date">${String(noteDate.getMonth() + 1).padStart(2, '0')}-${String(noteDate.getDate()).padStart(2, '0')}</div>
-				<div class="timeline-weekday">${weekdayNames[noteDate.getDay()]}</div>
+				<div class="timeline-weekday" style="font-size: 1.1em;">${weekdayNames[noteDate.getDay()]}</div>
 				<div class="timeline-time">${noteDate.toLocaleTimeString(localeString, {
 					hour: '2-digit',
 					minute: '2-digit',
-					second: '2-digit'
+					second: '2-digit',
+					hour12: false
 				})}</div>
 			`;
 

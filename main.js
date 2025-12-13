@@ -58,7 +58,12 @@ function getLocalizedText(key, language) {
     "monthView": { en: "Month View", zh: "\u6708\u89C6\u56FE" },
     "locatedToFile": { en: "Located to file", zh: "\u5DF2\u5B9A\u4F4D\u5230\u6587\u4EF6" },
     "jumpedToMonthView": { en: "Jumped to", zh: "\u5DF2\u8DF3\u8F6C\u5230" },
-    "monthViewAbbr": { en: "month view", zh: "\u6708\u89C6\u56FE" }
+    "monthViewAbbr": { en: "month view", zh: "\u6708\u89C6\u56FE" },
+    "switchView": { en: "Switch view", zh: "\u5207\u6362\u89C6\u56FE" },
+    "currentView": { en: "Current", zh: "\u5F53\u524D" },
+    "yearToMonth": { en: "\u{1F4C5}", zh: "\u{1F4C5}" },
+    "monthToYear": { en: "\u{1F4C6}", zh: "\u{1F4C6}" },
+    "switchViewTooltip": { en: "Click to switch view (Current: {current})", zh: "\u70B9\u51FB\u5207\u6362\u89C6\u56FE (\u5F53\u524D: {current})" }
   };
   return ((_a = texts[key]) == null ? void 0 : _a[language]) || key;
 }
@@ -471,7 +476,9 @@ var NotesDatesPlugin = class extends import_obsidian.Plugin {
           if (viewSwitcherBtn) {
             if (typeof calendarView.getViewSwitcherLabel === "function") {
               viewSwitcherBtn.textContent = calendarView.getViewSwitcherLabel();
-              viewSwitcherBtn.title = `\u70B9\u51FB\u5207\u6362\u89C6\u56FE (\u5F53\u524D: ${calendarView.getViewTypeLabel()})`;
+              if (typeof calendarView.getViewSwitcherTooltip === "function") {
+                viewSwitcherBtn.title = calendarView.getViewSwitcherTooltip();
+              }
             }
           }
         }
@@ -526,7 +533,7 @@ var CalendarView = class extends import_obsidian.ItemView {
     const viewSelectorEl = controlsEl.createDiv("view-selector-single");
     const viewSwitcherBtn = viewSelectorEl.createEl("button", {
       text: this.getViewSwitcherLabel(),
-      title: `\u70B9\u51FB\u5207\u6362\u89C6\u56FE (\u5F53\u524D: ${this.getViewTypeLabel()})`,
+      title: this.getViewSwitcherTooltip(),
       cls: "view-switcher-btn"
     });
     viewSwitcherBtn.onclick = () => {
@@ -543,7 +550,7 @@ var CalendarView = class extends import_obsidian.ItemView {
       this.plugin.settings.calendarViewType = nextType;
       this.plugin.saveSettings();
       viewSwitcherBtn.textContent = this.getViewSwitcherLabel();
-      viewSwitcherBtn.title = `\u70B9\u51FB\u5207\u6362\u89C6\u56FE (\u5F53\u524D: ${this.getViewTypeLabel()})`;
+      viewSwitcherBtn.title = this.getViewSwitcherTooltip();
       const currentRef = this.currentDate || new Date();
       this.renderCalendar(currentRef, null, monthYearEl);
     };
@@ -858,7 +865,7 @@ var CalendarView = class extends import_obsidian.ItemView {
           const viewSwitcherBtn = document.querySelector(".view-switcher-btn");
           if (viewSwitcherBtn) {
             viewSwitcherBtn.textContent = this.getViewSwitcherLabel();
-            viewSwitcherBtn.title = `\u70B9\u51FB\u5207\u6362\u89C6\u56FE (\u5F53\u524D: ${this.getViewTypeLabel()})`;
+            viewSwitcherBtn.title = this.getViewSwitcherTooltip();
           }
           const targetDate = new Date(noteYear, noteMonth, 1);
           const monthYearEl2 = this.monthYearEl;
@@ -940,23 +947,28 @@ var CalendarView = class extends import_obsidian.ItemView {
     const currentType = this.plugin.settings.calendarViewType;
     switch (currentType) {
       case "year":
-        return "\u5E74 \u279C \u6708";
+        return getLocalizedText("yearToMonth", this.plugin.settings.language);
       case "month":
-        return "\u6708 \u279C \u5E74";
+        return getLocalizedText("monthToYear", this.plugin.settings.language);
       default:
-        return "\u5E74 \u279C \u6708";
+        return getLocalizedText("yearToMonth", this.plugin.settings.language);
     }
   }
   getViewTypeLabel() {
     const currentType = this.plugin.settings.calendarViewType;
     switch (currentType) {
       case "year":
-        return "\u5E74\u89C6\u56FE";
+        return getLocalizedText("yearView", this.plugin.settings.language);
       case "month":
-        return "\u6708\u89C6\u56FE";
+        return getLocalizedText("monthView", this.plugin.settings.language);
       default:
-        return "\u5E74\u89C6\u56FE";
+        return getLocalizedText("yearView", this.plugin.settings.language);
     }
+  }
+  getViewSwitcherTooltip() {
+    const currentType = this.getViewTypeLabel();
+    const tooltipTemplate = getLocalizedText("switchViewTooltip", this.plugin.settings.language);
+    return tooltipTemplate.replace("{current}", currentType);
   }
   async onClose() {
   }
@@ -1038,11 +1050,12 @@ var DateNotesModal = class extends import_obsidian.Modal {
       const localeString = this.plugin.settings.language === "en" ? "en-US" : "zh-CN";
       dateTimeIndicator.innerHTML = `
 				<div class="timeline-date">${String(noteDate.getMonth() + 1).padStart(2, "0")}-${String(noteDate.getDate()).padStart(2, "0")}</div>
-				<div class="timeline-weekday">${weekdayNames[noteDate.getDay()]}</div>
+				<div class="timeline-weekday" style="font-size: 1.1em;">${weekdayNames[noteDate.getDay()]}</div>
 				<div class="timeline-time">${noteDate.toLocaleTimeString(localeString, {
         hour: "2-digit",
         minute: "2-digit",
-        second: "2-digit"
+        second: "2-digit",
+        hour12: false
       })}</div>
 			`;
       const noteContent = timelineItem.createDiv("timeline-note-content");
