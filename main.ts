@@ -348,14 +348,14 @@ class NotesDatesPlugin extends Plugin {
 				display: flex;
 				flex-direction: column;
 				align-items: center;
-				padding: 4px 6px; /* Reduced padding */
-				border-radius: 4px; /* Smaller border radius */
+				padding: 6px 8px; /* Larger padding for bigger text */
+				border-radius: 4px;
 				cursor: pointer;
 				transition: all 0.2s ease;
-				min-width: 40px; /* Smaller minimum width */
+				min-width: 50px; /* Larger minimum width for bigger text */
 				background-color: var(--background-secondary);
 				border: 1px solid var(--background-modifier-border);
-				font-size: 10px; /* Smaller overall font size */
+				font-size: 12px; /* Larger font size */
 			}
 
 			.year-month-timeline-item:hover {
@@ -375,17 +375,17 @@ class NotesDatesPlugin extends Plugin {
 			}
 
 			.year-month-timeline-month {
-				font-size: 10px; /* Smaller font */
+				font-size: 13px; /* Larger font */
 				font-weight: 500;
 				white-space: nowrap;
-				line-height: 1.1;
+				line-height: 1.2;
 			}
 
 			.year-month-timeline-count {
-				font-size: 9px; /* Even smaller for count */
+				font-size: 11px; /* Larger font for count */
 				opacity: 0.7;
-				margin-top: 1px; /* Reduced margin */
-				line-height: 1.0;
+				margin-top: 2px;
+				line-height: 1.1;
 			}
 
 			/* Timeline should be the only scrollable area */
@@ -730,7 +730,7 @@ class NotesDatesPlugin extends Plugin {
 			/* Ensure month timeline stays fixed during scrolling with smaller size */
 			.year-month-timeline {
 				position: sticky !important;
-				top: 32px !important; /* Position right below calendar controls */
+				top: 14px !important; /* Position right below calendar controls */
 				z-index: 20 !important;
 				background-color: var(--background-primary) !important;
 				border-bottom: 1px solid var(--background-modifier-border) !important;
@@ -741,21 +741,21 @@ class NotesDatesPlugin extends Plugin {
 				margin-bottom: 0 !important;
 			}
 
-			/* Make month timeline items smaller */
+			/* Make month timeline items appropriately sized for mobile */
 			.year-month-timeline-item {
-				padding: 2px 4px !important;
-				min-width: 32px !important;
-				font-size: 9px !important;
+				padding: 3px 5px !important;
+				min-width: 42px !important;
+				font-size: 11px !important;
 			}
 
 			.year-month-timeline-month {
-				font-size: 9px !important;
-				line-height: 1.0 !important;
+				font-size: 12px !important;
+				line-height: 1.1 !important;
 				margin-bottom: 1px !important;
 			}
 
 			.year-month-timeline-count {
-				font-size: 8px !important;
+				font-size: 10px !important;
 			}
 
 			/* Ensure month headers are clickable and properly styled */
@@ -813,16 +813,16 @@ class NotesDatesPlugin extends Plugin {
 				align-items: center !important;
 				white-space: nowrap !important;
 				flex-direction: row !important;
-				gap: 2px !important;
-				padding: 0 !important;
+				gap: 3px !important;
+				padding: 2px 4px !important;
 				margin-left: 0 !important;
-				padding-left: 8px !important;
+				padding-left: 10px !important;
 				background-color: var(--background-modifier-border) !important;
-				border-radius: 2px !important;
-				font-size: 9px !important;
-				line-height: 1.1 !important;
-				min-height: 14px !important;
-				height: 14px !important;
+				border-radius: 3px !important;
+				font-size: 11px !important;
+				line-height: 1.2 !important;
+				min-height: 18px !important;
+				height: 18px !important;
 				overflow: hidden !important;
 				width: fit-content !important;
 				max-width: 100% !important;
@@ -841,18 +841,18 @@ class NotesDatesPlugin extends Plugin {
 
 			/* Reduce file content font size */
 			.year-view-timeline-container .timeline-note-title {
-				font-size: 10px !important;
-				line-height: 1.1 !important;
+				font-size: 13px !important;
+				line-height: 1.2 !important;
 			}
 
 			.year-view-timeline-container .timeline-note-path {
-				font-size: 8px !important;
-				line-height: 1.1 !important;
+				font-size: 10px !important;
+				line-height: 1.2 !important;
 			}
 
 			.year-view-timeline-container .timeline-note-content {
-				font-size: 10px !important;
-				line-height: 1.1 !important;
+				font-size: 12px !important;
+				line-height: 1.2 !important;
 			}
 
 			/* Fix month collapse functionality */
@@ -1429,8 +1429,18 @@ class NotesDatesPlugin extends Plugin {
 					return;
 				}
 
-				// In month view or other views: jump to file's date
+				// In week view: jump to file's date and also open the file
+				if (this.settings.calendarViewType === 'week') {
+					this.jumpCalendarToFileDate(file);
+					this.openFileInEditor(file);
+					console.log('Week view: jumping to date and opening file');
+					return;
+				}
+
+				// In month view: jump to file's date and also open the file
 				this.jumpCalendarToFileDate(file);
+				this.openFileInEditor(file);
+				console.log('Month view: jumping to date and opening file');
 			};
 
 			fileTitleEl.addEventListener('click', clickHandler);
@@ -1541,13 +1551,18 @@ class NotesDatesPlugin extends Plugin {
 				// Wait for re-render to complete, then proceed
 				setTimeout(() => {
 					this.performFileScrolling(file, fileMonth);
+					// Also open the file for editing
+					this.openFileInEditor(file);
 				}, 500);
 				return;
 			}
 		}
 
-		// If we're already in the correct year, proceed with scrolling
+		// If we're already in the correct year, proceed with scrolling and open file
 		this.performFileScrolling(file, fileMonth);
+
+		// Also open the file for editing
+		this.openFileInEditor(file);
 	}
 
 	performFileScrolling(file: TFile, fileMonth: number) {
@@ -1557,16 +1572,26 @@ class NotesDatesPlugin extends Plugin {
 		// Find all file elements in the year view's month timelines
 		const fileElements = document.querySelectorAll('.timeline-note-content');
 		let targetElement: Element | null = null;
+		const fileNameWithoutExt = file.basename; // Get filename without .md extension
+
+		console.log('Looking for file:', fileNameWithoutExt, 'in', fileElements.length, 'timeline elements');
 
 		fileElements.forEach((element: Element) => {
 			const fileEl = element as HTMLElement;
 			// Check if this element represents our target file
 			const text = fileEl.textContent?.trim() || '';
-			const fileNameWithoutExt = file.basename; // Get filename without .md extension
 
-			// Match by filename (case insensitive)
-			if (text.toLowerCase().includes(fileNameWithoutExt.toLowerCase())) {
+			// Also check file path by looking for data-path attribute or comparing with full path
+			const fileTitle = fileEl.querySelector('.timeline-note-title')?.textContent?.trim();
+			const filePath = fileEl.querySelector('.timeline-note-path')?.textContent?.trim();
+
+			console.log('Checking element:', { text, fileTitle, filePath, targetName: fileNameWithoutExt });
+
+			// Match by filename (case insensitive) - try both title and path
+			if ((fileTitle && fileTitle.toLowerCase() === fileNameWithoutExt.toLowerCase()) ||
+				(text.toLowerCase().includes(fileNameWithoutExt.toLowerCase()))) {
 				targetElement = fileEl;
+				console.log('Found matching element for:', fileNameWithoutExt);
 			}
 		});
 
@@ -1599,6 +1624,11 @@ class NotesDatesPlugin extends Plugin {
 				console.log('File element not found in year view timeline:', file.path);
 			}
 		}, 300); // Wait for month expansion animation
+	}
+
+	openFileInEditor(file: TFile) {
+		// Open the file in a new leaf (tab) in the main workspace
+		this.app.workspace.getLeaf().openFile(file);
 	}
 
 	scrollToMonthInTimeline(monthIndex: number) {
